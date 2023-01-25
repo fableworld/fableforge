@@ -31,7 +31,7 @@
 }
 
 .logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
+  filter: drop-shadow(0 0 2em #ffffff);
 }
 
 .row {
@@ -87,7 +87,7 @@ button {
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;
-    background-color: #2f2f2f;
+    background-color: #f9bb01;
   }
 
   a:hover {
