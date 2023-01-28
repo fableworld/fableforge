@@ -20,8 +20,8 @@ tauri = { version = "1.2", features = ["api-all"] }
 
 usb_enumeration = "0.2.0"
 mountpoints = "0.2.1"
-ffmpeg-rs = "5.2.1"
 anyhow = "1.0.68"
+id3 = "1.6.0"
 
 [features]
 # by default Tauri runs in production mode
