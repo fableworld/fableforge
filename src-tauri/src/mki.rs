@@ -44,6 +44,23 @@ fn encode_using_tempfile(input: impl AsRef<Path>, output: impl AsRef<Path>, coll
     Ok(())
 }
 
+pub fn encode_bytes_using_tempfile(input: &[u8], output: impl AsRef<Path>, collection: usize, track: usize) -> anyhow::Result<()> {
+    let mut tag = Tag::read_from(input)?;
+    tag.set_title(format!("K{collection:04}CP{track:02}"));
+
+    let temp_out = env::temp_dir().join(format!("{}_faba.mp3", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()));
+    fs::write(&temp_out, &input)?;
+    tag.write_to_path(&temp_out, Version::Id3v23)?;
+
+    let bytes = fs::read(&temp_out)?;
+    fs::remove_file(temp_out)?;
+
+    let unscrambled = scramble(bytes).collect::<Vec<_>>();
+    fs::write(output, unscrambled)?;
+
+    Ok(())
+}
+
 fn scramble<'x, In>(instream: In) -> impl Iterator<Item=u8> + 'x
     where In: IntoIterator,
           In::IntoIter: 'x,

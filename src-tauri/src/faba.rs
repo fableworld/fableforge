@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use anyhow::anyhow;
 use mountpoints::mountpaths;
+use crate::mki;
 
 pub struct FabaBox {
     mountpoint: PathBuf,
@@ -30,7 +31,7 @@ impl FabaBox {
                 fs::create_dir(collection_path)?;
             }
             if !first_track_path.exists() {
-                // TODO
+                mki::encode_bytes_using_tempfile(include_bytes!("../res/audio/not-found.mp3"), first_track_path, 5000+idx, 1)?;
             }
         }
         Ok(())
