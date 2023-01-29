@@ -11,16 +11,15 @@ pub struct FabaBox {
 const NUM_SLOTS: usize = 500;
 
 impl FabaBox {
-    pub fn detect() -> anyhow::Result<Self> {
+    pub fn detect() -> Option<Self> {
         // TODO: find a way to extract mountpoint from device
         // let devices = usb_enumeration::enumerate(Some(58807), Some(2065));
 
-        let mountpoint = mountpaths()?
+        mountpaths()
+            .unwrap_or_default()
             .into_iter()
             .find(|base| base.join("MKI01").is_dir())
-            .ok_or_else(|| anyhow!("MyFaba device not found"))?;
-
-        Ok(Self { mountpoint })
+            .map(|mountpoint| Self { mountpoint })
     }
 
     pub fn initialize_freefaba_fs(&self) -> anyhow::Result<()> {
