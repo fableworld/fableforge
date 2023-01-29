@@ -11,7 +11,7 @@ impl From<FabaSlot> for SlotDto {
     fn from(value: FabaSlot) -> Self {
         Self {
             index: value.index,
-            name: value.name.unwrap_or_else(|| format!("Slot {}", value.index)),
+            name: value.name.unwrap_or_else(|| String::from("No name")),
         }
     }
 }
