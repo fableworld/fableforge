@@ -1,7 +1,9 @@
-use serde::Serialize;
+use std::path::PathBuf;
+use serde::{Serialize, Deserialize};
 use crate::faba::{FabaSlot, Track};
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SlotDto {
     index: usize,
     name: String,
@@ -17,6 +19,7 @@ impl From<FabaSlot> for SlotDto {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrackDto {
     track_number: usize,
 }
@@ -27,4 +30,11 @@ impl From<Track> for TrackDto {
             track_number: value.index,
         }
     }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct NewTrackDto {
+    pub track_number: usize,
+    pub path: PathBuf,
 }

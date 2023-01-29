@@ -7,7 +7,7 @@ use anyhow::bail;
 use tauri::State;
 
 use crate::core::error::FabaError;
-use crate::dto::fababox::{SlotDto, TrackDto};
+use crate::dto::fababox::{SlotDto, TrackDto, NewTrackDto};
 use crate::faba::FabaBox;
 
 mod mki;
@@ -44,10 +44,26 @@ fn load_tracks(maybe_faba: State<Option<FabaBox>>, slot: usize) -> Result<Vec<Tr
     Ok(res)
 }
 
+#[tauri::command]
+fn write_tracks(maybe_faba: State<Option<FabaBox>>, slot: usize, new_tracks: Vec<NewTrackDto>) -> Result<(), FabaError> {
+    let Some(ref faba) = *maybe_faba else {
+        return Err(FabaError::NotDetected)
+    };
+
+    for track in new_tracks {
+        faba.write_track(slot, track.track_number, track.path)
+            .map_err(|err| {
+                eprintln!("Write error - {err}");
+                FabaError::Communication
+            })?;
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(FabaBox::detect())
-        .invoke_handler(tauri::generate_handler![load_slots, load_tracks])
+        .invoke_handler(tauri::generate_handler![load_slots, load_tracks, write_tracks])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

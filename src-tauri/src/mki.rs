@@ -27,7 +27,7 @@ fn encode(input: impl io::Read, output: impl io::Write, collection: usize, track
     Ok(())
 }
 
-fn encode_using_tempfile(input: impl AsRef<Path>, output: impl AsRef<Path>, collection: usize, track: usize) -> anyhow::Result<()> {
+pub fn encode_using_tempfile(input: impl AsRef<Path>, output: impl AsRef<Path>, collection: usize, track: usize) -> anyhow::Result<()> {
     let mut tag = Tag::read_from_path(&input)?;
     tag.set_title(format!("K{collection:04}CP{track:02}"));
 

@@ -52,11 +52,18 @@ const NewTrackItem = ({ track, trackNum, onDelete }: { track: NewTrack, trackNum
 export const SlotEditor = () => {
     const [tracks, setTracks] = useState<Array<NewTrack | LoadedTrack>>([]);
     const [slot, _] = useAtom(selectedSlotAtom);
+
+    const reloadTracks = async () => {
+        if (slot) {
+            const tracks = await invoke('load_tracks', { slot: slot.index }) as { trackNumber: number }[];
+            setTracks(tracks.map(track => ({ t: 'loaded', ...track })));
+        }
+    };
+
     useEffect(() => {
         setTracks([]);
         if (slot) {
-            invoke('load_tracks', { slot: slot.index })
-                .then(tracks => setTracks((tracks as { trackNumber: number }[]).map(track => ({ t: 'loaded', trackNumber: track.trackNumber }))))
+            reloadTracks();
         }
     }, [slot?.index]);
 
@@ -84,7 +91,15 @@ export const SlotEditor = () => {
     };
 
     const writeTracks = async () => {
-        console.log('writing tracks');
+        const newTracks = tracks
+            .map((track, trackNum) => ({ ...track, trackNum }))
+            .filter(track => track.t === 'new')
+            .map(track => ({ path: (track as NewTrack).sourcePath, trackNumber: track.trackNum }));
+
+        console.log(newTracks);
+        
+        await invoke('write_tracks', { slot: slot.index, newTracks });
+        await reloadTracks();
     }
 
     const onDelete = (trackNum: number) => {
