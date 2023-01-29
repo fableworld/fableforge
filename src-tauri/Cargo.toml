@@ -25,6 +25,7 @@ id3 = "1.6.0"
 thiserror = "1.0.38"
 regex = "1.7.1"
 lazy_static = "1.4.0"
+tokio = {version = "1.25.0", features = ["fs"] }
 
 [features]
 # by default Tauri runs in production mode

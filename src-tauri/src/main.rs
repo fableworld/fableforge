@@ -45,13 +45,14 @@ fn load_tracks(maybe_faba: State<Option<FabaBox>>, slot: usize) -> Result<Vec<Tr
 }
 
 #[tauri::command]
-fn write_tracks(maybe_faba: State<Option<FabaBox>>, slot: usize, new_tracks: Vec<NewTrackDto>) -> Result<(), FabaError> {
+async fn write_tracks<'a>(maybe_faba: State<'a, Option<FabaBox>>, slot: usize, new_tracks: Vec<NewTrackDto>) -> Result<(), FabaError> {
     let Some(ref faba) = *maybe_faba else {
         return Err(FabaError::NotDetected)
     };
 
     for track in new_tracks {
         faba.write_track(slot, track.track_number, track.path)
+            .await
             .map_err(|err| {
                 eprintln!("Write error - {err}");
                 FabaError::Communication

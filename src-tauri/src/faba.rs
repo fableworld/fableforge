@@ -46,13 +46,13 @@ impl FabaBox {
         Ok(())
     }
 
-    pub fn write_track(&self, slot: usize, track: usize, source_path: impl AsRef<Path>) -> anyhow::Result<()> {
+    pub async fn write_track(&self, slot: usize, track: usize, source_path: impl AsRef<Path>) -> anyhow::Result<()> {
         let collection_path = self.build_collection_dir(slot);
         let track_path = collection_path.join(format!("CP{:02}.MKI", track + 1));
         if track > 0 && track_path.exists() {
             bail!("Track {track} already defined for collection {slot}!")
         }
-        encode_using_tempfile(source_path, track_path, slot, track + 1)?;
+        encode_using_tempfile(source_path, track_path, slot, track + 1).await?;
         Ok(())
     }
 

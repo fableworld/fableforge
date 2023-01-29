@@ -1,4 +1,4 @@
-import { Avatar, Button, IconButton, List, ListItem, ListItemAvatar, ListItemText } from "@mui/material";
+import { Avatar, Button, CircularProgress, IconButton, List, ListItem, ListItemAvatar, ListItemText } from "@mui/material";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { selectedSlotAtom } from "../atoms/slot";
@@ -50,6 +50,7 @@ const NewTrackItem = ({ track, trackNum, onDelete }: { track: NewTrack, trackNum
 </>;
 
 export const SlotEditor = () => {
+    const [isWriting, setIsWriting] = useState(false);
     const [tracks, setTracks] = useState<Array<NewTrack | LoadedTrack>>([]);
     const [slot, _] = useAtom(selectedSlotAtom);
 
@@ -91,15 +92,20 @@ export const SlotEditor = () => {
     };
 
     const writeTracks = async () => {
-        const newTracks = tracks
-            .map((track, trackNum) => ({ ...track, trackNum }))
-            .filter(track => track.t === 'new')
-            .map(track => ({ path: (track as NewTrack).sourcePath, trackNumber: track.trackNum }));
+        setIsWriting(true);
+        try {
+            const newTracks = tracks
+                .map((track, trackNum) => ({ ...track, trackNum }))
+                .filter(track => track.t === 'new')
+                .map(track => ({ path: (track as NewTrack).sourcePath, trackNumber: track.trackNum }));
 
-        console.log(newTracks);
-        
-        await invoke('write_tracks', { slot: slot.index, newTracks });
-        await reloadTracks();
+            console.log(newTracks);
+            
+            await invoke('write_tracks', { slot: slot.index, newTracks });
+            await reloadTracks();
+        } finally {
+            setIsWriting(false);
+        }
     }
 
     const onDelete = (trackNum: number) => {
@@ -120,6 +126,6 @@ export const SlotEditor = () => {
             })}
         </List>
         <Button variant="outlined" startIcon={<AddIcon />} onClick={addTrack}>Add track</Button>
-        <Button variant="contained" startIcon={<DownloadIcon />} onClick={writeTracks}>Write</Button>
+        <Button variant="contained" disabled={isWriting} startIcon={isWriting ? <CircularProgress size={14} /> :<DownloadIcon />} onClick={writeTracks}>Write</Button>
     </>;
 }

@@ -27,19 +27,19 @@ fn encode(input: impl io::Read, output: impl io::Write, collection: usize, track
     Ok(())
 }
 
-pub fn encode_using_tempfile(input: impl AsRef<Path>, output: impl AsRef<Path>, collection: usize, track: usize) -> anyhow::Result<()> {
+pub async fn encode_using_tempfile(input: impl AsRef<Path>, output: impl AsRef<Path>, collection: usize, track: usize) -> anyhow::Result<()> {
     let mut tag = Tag::read_from_path(&input)?;
     tag.set_title(format!("K{collection:04}CP{track:02}"));
 
     let temp_out = env::temp_dir().join(format!("{}_faba.mp3", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()));
-    fs::copy(&input, &temp_out)?;
+    tokio::fs::copy(&input, &temp_out).await?;
     tag.write_to_path(&temp_out, Version::Id3v23)?;
 
     let bytes = fs::read(&temp_out)?;
     fs::remove_file(temp_out)?;
 
     let unscrambled = scramble(bytes).collect::<Vec<_>>();
-    fs::write(output, unscrambled)?;
+    tokio::fs::write(output, unscrambled).await?;
 
     Ok(())
 }
