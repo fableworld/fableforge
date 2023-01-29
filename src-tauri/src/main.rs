@@ -7,25 +7,31 @@ use anyhow::bail;
 use tauri::State;
 
 use crate::core::error::FabaError;
+use crate::dto::fababox::SlotDto;
 use crate::faba::FabaBox;
 
 mod mki;
 mod faba;
 mod core;
+mod dto;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn greet(maybe_faba: State<Option<FabaBox>>, input_file: &str) -> Result<String, FabaError> {
+fn load_slots(maybe_faba: State<Option<FabaBox>>) -> Result<Vec<SlotDto>, FabaError> {
     let Some(ref faba) = *maybe_faba else {
         return Err(FabaError::NotDetected)
     };
-    Ok(format!("Input file: {}", input_file))
+    let res = faba
+        .list_slots()
+        .into_iter()
+        .map(From::from)
+        .collect();
+    Ok(res)
 }
 
 fn main() {
     tauri::Builder::default()
         .manage(FabaBox::detect())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![load_slots])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

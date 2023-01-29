@@ -24,7 +24,7 @@ impl FabaBox {
 
     pub fn initialize_freefaba_fs(&self) -> anyhow::Result<()> {
         for idx in 1..=NUM_SLOTS {
-            let collection_path = self.mountpoint.join(format!("MKI01/K5{idx:03}"));
+            let collection_path = self.build_collection_dir(idx);
             let first_track_path = collection_path.join("CP01.MKI");
             if !collection_path.exists() {
                 fs::create_dir(collection_path)?;
@@ -35,4 +35,24 @@ impl FabaBox {
         }
         Ok(())
     }
+
+    fn build_collection_dir(&self, index: usize) -> PathBuf {
+        self.mountpoint.join(format!("MKI01/K5{index:03}"))
+    }
+
+    pub fn list_slots(&self) -> Vec<FabaSlot> {
+        (1..=NUM_SLOTS)
+            .into_iter()
+            .filter(|index| self.build_collection_dir(*index).is_dir())
+            .map(|index| FabaSlot {
+                index,
+                name: None,
+            })
+            .collect()
+    }
+}
+
+pub struct FabaSlot {
+    pub index: usize,
+    pub name: Option<String>,
 }
