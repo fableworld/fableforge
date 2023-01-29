@@ -8,6 +8,8 @@ import { useTheme, styled } from '@mui/material/styles';
 import { VariableSizeList, ListChildComponentProps } from 'react-window';
 import Typography from '@mui/material/Typography';
 import { invoke } from '@tauri-apps/api';
+import { useAtom } from 'jotai';
+import { selectedSlotAtom } from '../atoms/slot';
 
 const LISTBOX_PADDING = 8; // px
 
@@ -29,7 +31,7 @@ function renderRow(props: ListChildComponentProps) {
 
     return (
         <Typography component="li" {...dataSet[0]} noWrap style={inlineStyle}>
-            {`#${dataSet[2] + 1} - ${dataSet[1]}`}
+            {`${dataSet[1].label}`}
         </Typography>
     );
 }
@@ -127,22 +129,28 @@ interface SlotDto {
 
 function Virtualize() {
     const [slots, setSlots] = React.useState<SlotDto[]>([]);
+    const [selectedSlot, selectSlot] = useAtom(selectedSlotAtom);
 
     React.useEffect(() => {
         invoke('load_slots')
             .then(loadedSlots => setSlots(loadedSlots as SlotDto[]));
     }, []);
+
+    const selectionChanged = (event: React.SyntheticEvent, newValue: SlotDto | null) => {
+        selectSlot(newValue);
+    }
     return (
         <Autocomplete
             id="slot-select"
             disableListWrap
+            onChange={selectionChanged}
             PopperComponent={StyledPopper}
             ListboxComponent={ListboxComponent}
-            options={slots}
-            groupBy={(option) => option.name[0].toUpperCase()}
+            isOptionEqualToValue={({ index: a }, { index: b }) => a === b }
+            options={slots.map(slot => ({ ...slot, label: `${slot.index}`.padStart(3, '0') + ` - ${slot.name}` }))}
             renderInput={(params) => <TextField {...params} label="MyFaba Slot" />}
             renderOption={(props, option, state) =>
-                [props, option.name, state.index] as React.ReactNode
+                [props, option, state.index] as React.ReactNode
             }
             // TODO: Post React 18 update - validate this conversion, look like a hidden bug
             renderGroup={(params) => params as unknown as React.ReactNode}
