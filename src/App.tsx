@@ -6,6 +6,7 @@ import { ThemeProvider } from "@emotion/react";
 import { AppBar, Box, Container, createTheme, CssBaseline, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { red } from "@mui/material/colors";
 import { SlotSelect } from "./components/SlotSelector";
+import { SlotEditor } from "./components/SlotEditor";
 
 const theme = createTheme({
   palette: {
@@ -49,25 +50,8 @@ function App() {
           }}
         >
           <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <div>
-              <Button variant="contained" onClick={loadSlots}>Hello World</Button>
-            </div>
-            <ul>
-
-            </ul>
-            <FormControl fullWidth>
-              <InputLabel id="slot-select-label">Slot</InputLabel>
-              <Select
-                labelId="slot-select-label"
-                id="slot-select"
-                value={selectedSlot}
-                label="Slot"
-                onChange={handleSlotChange}
-              >
-                {slots.map(slot => <MenuItem key={slot.index} value={`${slot.index}`}>{slot.name}</MenuItem>)}
-              </Select>
-            </FormControl>
             <SlotSelect />
+            <SlotEditor />
           </Container>
         </Box>
       </Box>
