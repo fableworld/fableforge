@@ -2,6 +2,8 @@
 pub enum FabaError {
     #[error("Device is not detected")]
     NotDetected,
+    #[error("Error during communication with device")]
+    Communication,
 }
 
 // we must manually implement serde::Serialize

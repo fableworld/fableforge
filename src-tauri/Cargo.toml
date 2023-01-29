@@ -23,6 +23,8 @@ mountpoints = "0.2.1"
 anyhow = "1.0.68"
 id3 = "1.6.0"
 thiserror = "1.0.38"
+regex = "1.7.1"
+lazy_static = "1.4.0"
 
 [features]
 # by default Tauri runs in production mode

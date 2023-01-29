@@ -1,7 +1,11 @@
 use std::fs;
-use std::path::PathBuf;
-use anyhow::anyhow;
+use std::fs::DirEntry;
+use std::path::{Path, PathBuf};
+
+use lazy_static::lazy_static;
 use mountpoints::mountpaths;
+use regex::Regex;
+
 use crate::mki;
 
 pub struct FabaBox {
@@ -9,6 +13,10 @@ pub struct FabaBox {
 }
 
 const NUM_SLOTS: usize = 500;
+
+lazy_static! {
+    static ref TRACK_FILENAME_REGEX: Regex = Regex::new(r"^CP([0-9]{2})\.MKI$").unwrap();
+}
 
 impl FabaBox {
     pub fn detect() -> Option<Self> {
@@ -50,9 +58,47 @@ impl FabaBox {
             })
             .collect()
     }
+
+    pub fn list_tracks(&self, slot_idx: usize) -> anyhow::Result<Vec<Track>> {
+        let entries = fs::read_dir(self.build_collection_dir(slot_idx))?;
+        let result = entries.into_iter()
+            .filter_map(|path_res| path_res.map(Self::detect_track).transpose())
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(result)
+    }
+
+    fn detect_track(path: DirEntry) -> Option<Track> {
+        path.file_name().to_str()
+            .and_then(|filename| TRACK_FILENAME_REGEX.captures(filename))
+            .map(|cap| Track {
+                index: cap[1].parse().expect("Error parsing value"),
+            })
+            .filter(|track| !Self::is_placeholder_track(track, &path))
+    }
+
+    fn is_placeholder_track(track: &Track, path: &DirEntry) -> bool {
+        if track.index != 1 {
+            false
+        } else if Self::file_len(path.path()) != 18836 {
+            false
+        } else {
+            true
+        }
+    }
+
+    fn file_len(path: impl AsRef<Path>) -> u64 {
+        path.as_ref()
+            .metadata()
+            .expect("Error extracting file metadata")
+            .len()
+    }
 }
 
 pub struct FabaSlot {
     pub index: usize,
     pub name: Option<String>,
+}
+
+pub struct Track {
+    pub index: usize,
 }

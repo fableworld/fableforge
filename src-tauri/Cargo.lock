@@ -703,7 +703,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "id3",
+ "lazy_static",
  "mountpoints",
+ "regex",
  "serde",
  "serde_json",
  "tauri",
