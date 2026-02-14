@@ -1,3 +1,6 @@
+/* Inter font import — must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 /* ============================================================
    FableForge Design System
    ============================================================ */
@@ -547,6 +550,363 @@ body {
   color: var(--color-success-500);
 }
 
+/* --- Dialog (Radix) --- */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  animation: fade-in var(--transition-base);
+}
+
+.dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  width: min(440px, 90vw);
+  box-shadow: var(--shadow-lg);
+  animation: dialog-in var(--transition-slow);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.dialog-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dialog-description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.dialog-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.dialog-input:focus {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(108, 82, 245, 0.1);
+}
+
+.dialog-error {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--color-danger-500);
+  font-size: var(--text-sm);
+}
+
+.dialog-success {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(34, 197, 94, 0.08);
+  color: var(--color-success-500);
+  font-size: var(--text-sm);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* --- Search Bar --- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.search-bar__input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-bar__icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.search-bar__input {
+  width: 100%;
+  padding: var(--space-2) var(--space-4) var(--space-2) calc(var(--space-3) + 22px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  height: 36px;
+}
+
+.search-bar__input:focus {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(108, 82, 245, 0.1);
+}
+
+.search-bar__input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.search-bar__controls {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.btn--active {
+  color: var(--color-primary-500) !important;
+  background: var(--color-primary-50) !important;
+}
+
+[data-theme="dark"] .btn--active {
+  background: rgba(108, 82, 245, 0.12) !important;
+  color: var(--color-primary-400) !important;
+}
+
+/* --- Gallery Grid --- */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+
+/* --- Spin animation --- */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Character Detail --- */
+.character-detail {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.character-detail__hero {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--color-bg-sunken);
+  margin-bottom: var(--space-6);
+}
+
+.character-detail__hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.character-detail__hero-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+}
+
+.character-detail__name {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+}
+
+.character-detail__description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-6);
+}
+
+.character-detail__section {
+  margin-bottom: var(--space-6);
+}
+
+.character-detail__section-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sunken);
+  font-size: var(--text-sm);
+}
+
+.track-item__number {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .track-item__number {
+  background: rgba(108, 82, 245, 0.15);
+  color: var(--color-primary-300);
+}
+
+.track-item__title {
+  flex: 1;
+}
+
+.track-item__duration {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.model-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.model-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sunken);
+  color: var(--color-primary-500);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+}
+
+.model-link:hover {
+  background: var(--color-primary-50);
+}
+
+[data-theme="dark"] .model-link:hover {
+  background: rgba(108, 82, 245, 0.12);
+}
+
+/* --- Registry List (Settings) --- */
+.registry-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.registry-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sunken);
+}
+
+.registry-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.registry-item__name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.registry-item__url {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registry-item__meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.registry-item__actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
 /* --- Utilities --- */
 .sr-only {
   position: absolute;
@@ -560,5 +920,3 @@ body {
   border-width: 0;
 }
 
-/* Inter font import */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');

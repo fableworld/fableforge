@@ -59,6 +59,7 @@ async fn write_tracks<'a>(maybe_faba: State<'a, Option<FabaBox>>, slot: usize, n
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .manage(FabaBox::detect())
         .invoke_handler(tauri::generate_handler![load_slots, load_tracks, write_tracks])
         .run(tauri::generate_context!())

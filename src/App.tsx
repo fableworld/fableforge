@@ -7,6 +7,7 @@ import { GalleryPage } from "@/pages/GalleryPage";
 import { CollectionsPage } from "@/pages/CollectionsPage";
 import { EditorPage } from "@/pages/EditorPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { CharacterDetailPage } from "@/pages/CharacterDetailPage";
 
 export function App() {
   const [theme] = useAtom(themeAtom);
@@ -24,6 +25,7 @@ export function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/editor" element={<EditorPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/character/:id" element={<CharacterDetailPage />} />
         </Routes>
       </main>
     </div>

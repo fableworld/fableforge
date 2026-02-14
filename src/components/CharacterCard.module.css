@@ -1,0 +1,134 @@
+.card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.card:hover {
+  border-color: var(--color-primary-300);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.card:active {
+  transform: translateY(-1px);
+}
+
+.imageWrapper {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-bg-sunken);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  background: linear-gradient(135deg, var(--color-bg-sunken) 0%, var(--color-bg-elevated) 100%);
+}
+
+.info {
+  padding: var(--space-3) var(--space-4);
+}
+
+.name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--space-1);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.trackCount {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Skeleton */
+.skeleton {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.skeletonImage {
+  aspect-ratio: 1;
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-sunken) 25%,
+    var(--color-bg-hover) 50%,
+    var(--color-bg-sunken) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeletonText {
+  margin: var(--space-3) var(--space-4);
+  height: 14px;
+  width: 70%;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-sunken) 25%,
+    var(--color-bg-hover) 50%,
+    var(--color-bg-sunken) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeletonMeta {
+  margin: 0 var(--space-4) var(--space-3);
+  height: 10px;
+  width: 40%;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-sunken) 25%,
+    var(--color-bg-hover) 50%,
+    var(--color-bg-sunken) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
