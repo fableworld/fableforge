@@ -1,36 +1,32 @@
 [package]
-name = "freefaba"
-version = "0.0.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+name = "fableforge"
+version = "0.1.0"
+description = "Desktop companion app for managing custom audio content on FABA-compatible music players"
+authors = ["d71"]
+license = "MIT"
 edition = "2021"
-rust-version = "1.57"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "fableforge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "1.2", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.2", features = ["api-all"] }
-
-usb_enumeration = "0.2.0"
-mountpoints = "0.2.1"
-anyhow = "1.0.68"
-id3 = "1.6.0"
-thiserror = "1.0.38"
-regex = "1.7.1"
-lazy_static = "1.4.0"
-tokio = {version = "1.25.0", features = ["fs"] }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+id3 = "1"
+regex = "1"
+lazy_static = "1"
+tokio = { version = "1", features = ["fs"] }
+mountpoints = "0.2"
+tracing = "0.1"
 
 [features]
-# by default Tauri runs in production mode
-# when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
 default = ["custom-protocol"]
-# this feature is used used for production builds where `devPath` points to the filesystem
-# DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]

@@ -1,62 +1,31 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/tauri";
-import Button from '@mui/material/Button';
-import { ThemeProvider } from "@emotion/react";
-import { AppBar, Box, Container, createTheme, CssBaseline, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
-import { red } from "@mui/material/colors";
-import { SlotSelect } from "./components/SlotSelector";
-import { SlotEditor } from "./components/SlotEditor";
+import { useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
+import { useAtom } from "jotai";
+import { themeAtom } from "@/stores/theme";
+import { Sidebar } from "@/components/Sidebar";
+import { GalleryPage } from "@/pages/GalleryPage";
+import { CollectionsPage } from "@/pages/CollectionsPage";
+import { EditorPage } from "@/pages/EditorPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: red[500],
-    },
-  },
-});
+export function App() {
+  const [theme] = useAtom(themeAtom);
 
-interface SlotDto {
-  index: number,
-  name: string,
-}
-
-function App() {
-  const [slots, setSlots] = useState<SlotDto[]>([]);
-  const [selectedSlot, selectSlot] = useState<string>('');
-
-  async function loadSlots() {
-    setSlots(await invoke("load_slots"));
-  }
-
-  const handleSlotChange = (event: SelectChangeEvent) => {
-    selectSlot(event.target.value as string)
-  }
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex' }}>
-        <CssBaseline />
-        <Box
-          component="main"
-          sx={{
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'light'
-                ? theme.palette.grey[100]
-                : theme.palette.grey[900],
-            flexGrow: 1,
-            height: '100vh',
-            overflow: 'auto',
-          }}
-        >
-          <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <SlotSelect />
-            <SlotEditor />
-          </Container>
-        </Box>
-      </Box>
-    </ThemeProvider>
+    <div className="app-layout">
+      <Sidebar />
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<GalleryPage />} />
+          <Route path="/collections" element={<CollectionsPage />} />
+          <Route path="/editor" element={<EditorPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
-
-export default App;
