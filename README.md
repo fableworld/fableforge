@@ -1,9 +1,9 @@
-# 🎭 FableForge (working title)
+# 🎭 FableForge
 
 > Desktop companion app for managing custom audio content on FABA-compatible children's music players.
 
 > [!NOTE]
-> The project is currently being renamed from "freefaba" to avoid trademark issues. See [PRD §6](docs/PRD.md) for naming candidates.
+> This project was formerly known as "freefaba" and has been renamed to FableForge.
 
 ## ✨ What It Does
 
@@ -20,7 +20,7 @@
 | Desktop Framework | [Tauri](https://tauri.app/) (Rust + WebView) |
 | Frontend | React + TypeScript |
 | Build | Vite |
-| State | Zustand / Jotai |
+| State | Jotai v2 |
 | Backend | Rust (Tauri commands) |
 
 ## 🚀 Getting Started

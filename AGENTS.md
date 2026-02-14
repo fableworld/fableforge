@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-**Name:** (formerly "freefaba" — being renamed, see `docs/PRD.md` §6)
+**Name:** FableForge (formerly "freefaba")
 **Type:** Desktop application
 **Stack:** Tauri (Rust backend) + React (TypeScript frontend)
 **Purpose:** Manage custom audio content for FABA-compatible music players. Download/create audio character collections, convert and write them to the physical device via USB.
@@ -27,7 +27,7 @@
 │       └────────────┼────────────┘      │
 │                    ▼                    │
 │           State Management              │
-│           (Zustand/Jotai)               │
+│              (Jotai v2)                 │
 └────────────────┬────────────────────────┘
                  │ Tauri IPC (invoke/events)
 ┌────────────────▼────────────────────────┐
@@ -93,7 +93,7 @@ Schema definitions should use **Zod** for runtime validation, matching OpenFable
 ### Frontend
 
 1. **Component structure:** Prefer small, focused components. Use composition over inheritance.
-2. **State management:** Global state in Zustand/Jotai stores. Component-local state with `useState`/`useReducer`.
+2. **State management:** Global state in Jotai v2 stores. Component-local state with `useState`/`useReducer`.
 3. **Styling:** CSS modules or CSS custom properties. Design tokens defined centrally. No inline styles except for dynamic values.
 4. **TypeScript:** Strict mode. No `any` types. Use Zod for runtime validation at boundaries (IPC, network).
 5. **Tauri IPC:** All `invoke()` calls should be wrapped in typed service functions. Never call `invoke()` directly from components.

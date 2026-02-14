@@ -1,6 +1,6 @@
 # Product Requirements Document (PRD)
 
-**Project Name:** TBD — rename away from "freefaba" (proposed: **FableForge**, **TaleBox**, **StorySmith**, **FableDesk** — to be decided)
+**Project Name:** FableForge
 **Type:** Desktop application (Tauri)
 **Version:** 2.0
 **Status:** Draft
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-This project is a **desktop companion application** for managing custom audio content on FABA-compatible music players. It evolves from the original "freefaba" prototype, incorporating the decentralized collection model pioneered by OpenFable (a PWA) with the native capabilities of a desktop app: direct USB device access, local file management, and S3-compatible registry synchronization.
+FableForge is a **desktop companion application** for managing custom audio content on FABA-compatible music players. It evolves from the original "freefaba" prototype, incorporating the decentralized collection model pioneered by OpenFable (a PWA) with the native capabilities of a desktop app: direct USB device access, local file management, and S3-compatible registry synchronization.
 
 The app allows users to **discover, create, manage, and write** audio character collections to their physical device, with a polished modern UI and a robust architecture.
 
@@ -123,12 +123,12 @@ The application adopts and extends OpenFable's registry JSON schema:
 | **Tauri** | v1.2 | v2.x (latest stable) |
 | **React** | v18 | v19 (or latest stable) |
 | **UI Framework** | MUI v5 | Custom design system or modern alternative (Radix UI + CSS modules, or similar) |
-| **State Management** | Jotai v1 | Zustand or Jotai v2 |
+| **State Management** | Jotai v1 | Jotai v2 |
 | **TypeScript** | v4.6 | v5.x |
 | **Vite** | v4 | v6.x |
 | **Rust edition** | 2021 | 2021 (retain, upgrade crate versions) |
 | **Tauri API** | `@tauri-apps/api` v1 | `@tauri-apps/api` v2 |
-| **Package Manager** | Yarn (classic) | pnpm or npm |
+| **Package Manager** | Yarn (classic) | pnpm |
 
 ### 4.2 Look & Feel
 
@@ -192,28 +192,11 @@ The application adopts and extends OpenFable's registry JSON schema:
 
 ---
 
-## 6. Naming
-
-The project needs a new name to:
-1. Avoid trademark issues (current name contains "faba").
-2. Better reflect the broader purpose (not just FABA devices).
-3. Sound appealing and memorable.
-
-**Proposed names (to be decided):**
-| Name | Rationale |
-|---|---|
-| **FableForge** | Combines "fable" (stories) with "forge" (creation), creative connotation |
-| **TaleBox** | "tale" (stories) + "box" (the device), simple and descriptive |
-| **StorySmith** | Craftsman of stories, premium feel |
-| **FableDesk** | Clear desktop companion connotation |
-| **Narrify** | From "narrate" + "-ify", modern SaaS-like feel |
-| **TaleForge** | Similar to FableForge but with "tale" |
-
 ---
 
 ## 7. Future Roadmap
 
-- **Deep link protocol:** `appname://write?character=uuid&registry=url` — receive write requests from OpenFable PWA.
+- **Deep link protocol:** `fableforge://write?character=uuid&registry=url` — receive write requests from OpenFable PWA.
 - **Multi-device management:** Support multiple FABA devices simultaneously.
 - **Audio editor:** Basic trim/normalize built into the app.
 - **Collection marketplace/discovery:** Curated list of community registries.

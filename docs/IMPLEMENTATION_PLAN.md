@@ -1,6 +1,6 @@
 # Implementation Plan
 
-**Project:** freefaba → [New Name TBD]
+**Project:** freefaba → FableForge
 **Scope:** Complete rewrite & feature expansion
 **Status:** Draft — pending review
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This plan outlines a phased approach to rewriting the desktop app from its current state (Tauri v1 + React 18 + MUI v5) into a modern, feature-rich application aligned with the [PRD](./PRD.md). The work is divided into phases to allow incremental progress and validation.
+This plan outlines a phased approach to rewriting the FableForge desktop app from its current state (Tauri v1 + React 18 + MUI v5) into a modern, feature-rich application aligned with the [PRD](./PRD.md). The work is divided into phases to allow incremental progress and validation.
 
 ---
 
@@ -18,7 +18,7 @@ This plan outlines a phased approach to rewriting the desktop app from its curre
 
 ### Tasks
 
-1. **Rename project** — Decide on a new name (see PRD §6) and update all references.
+1. **Rename project** — Update all references from "freefaba" to "FableForge" (identifiers, config files, bundle info).
 2. **Initialize Tauri v2 project** — Create a new Tauri v2 + React + TypeScript + Vite project.
    - Use `pnpm` as package manager.
    - Configure Vite 6.x, TypeScript 5.x, React 19.
@@ -33,7 +33,7 @@ This plan outlines a phased approach to rewriting the desktop app from its curre
    - Choose UI component library (Radix UI + CSS modules, or Shadcn-like custom components).
    - Define CSS custom properties: color palette, typography scale, spacing, border radius, shadows.
    - Implement dark/light mode toggle with system-aware default.
-5. **Set up state management** — Zustand or Jotai v2 for global state.
+5. **Set up state management** — Jotai v2 for global state.
 6. **Testing infrastructure:**
    - Rust: `cargo test` for encoding unit tests.
    - TypeScript: Vitest for service/utility tests.
