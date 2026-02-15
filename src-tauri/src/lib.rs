@@ -204,7 +204,7 @@ async fn process_and_save_image(
     let img = image::open(&src_path).map_err(|e| FabaError::Custom(format!("Failed to open image: {}", e)))?;
 
     // Resize to 400x400 (fill)
-    let resized = img.resize_to_fill(400, 400, image::imageops::FilterType::Lanczos3);
+    let resized = img.resize_to_fill(800, 800, image::imageops::FilterType::Lanczos3);
 
     // Save as JPEG
     resized
