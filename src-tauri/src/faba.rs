@@ -21,6 +21,14 @@ lazy_static! {
 }
 
 impl FabaBox {
+    pub fn mountpoint_str(&self) -> String {
+        self.mountpoint.to_string_lossy().to_string()
+    }
+
+    pub fn mountpoint_path(&self) -> PathBuf {
+        self.mountpoint.clone()
+    }
+
     pub fn detect() -> Option<Self> {
         // TODO: find a way to extract mountpoint from device
         // let devices = usb_enumeration::enumerate(Some(58807), Some(2065));
@@ -64,11 +72,55 @@ impl FabaBox {
         (1..=NUM_SLOTS)
             .into_iter()
             .filter(|index| self.build_collection_dir(*index).is_dir())
-            .map(|index| FabaSlot {
-                index,
-                name: None,
+            .map(|index| {
+                let track_count = self.count_tracks(index);
+                FabaSlot {
+                    index,
+                    name: None,
+                    track_count,
+                    exists: true,
+                }
             })
             .collect()
+    }
+
+    pub fn list_all_slots(&self) -> Vec<FabaSlot> {
+        (1..=NUM_SLOTS)
+            .into_iter()
+            .map(|index| {
+                let dir = self.build_collection_dir(index);
+                let exists = dir.is_dir();
+                let track_count = if exists { self.count_tracks(index) } else { 0 };
+                FabaSlot {
+                    index,
+                    name: None,
+                    track_count,
+                    exists,
+                }
+            })
+            .collect()
+    }
+
+    pub fn clear_slot(&self, slot_idx: usize) -> anyhow::Result<()> {
+        let dir = self.build_collection_dir(slot_idx);
+        if dir.is_dir() {
+            for entry in fs::read_dir(&dir)? {
+                let entry = entry?;
+                if entry.file_name().to_str()
+                    .map(|n| n.ends_with(".MKI"))
+                    .unwrap_or(false)
+                {
+                    fs::remove_file(entry.path())?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn count_tracks(&self, slot_idx: usize) -> usize {
+        self.list_tracks(slot_idx)
+            .map(|t| t.len())
+            .unwrap_or(0)
     }
 
     pub fn list_tracks(&self, slot_idx: usize) -> anyhow::Result<Vec<Track>> {
@@ -109,6 +161,8 @@ impl FabaBox {
 pub struct FabaSlot {
     pub index: usize,
     pub name: Option<String>,
+    pub track_count: usize,
+    pub exists: bool,
 }
 
 pub struct Track {

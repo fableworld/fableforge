@@ -5,8 +5,10 @@ use crate::faba::{FabaSlot, Track};
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SlotDto {
-    index: usize,
-    name: String,
+    pub index: usize,
+    pub name: String,
+    pub track_count: usize,
+    pub exists: bool,
 }
 
 impl From<FabaSlot> for SlotDto {
@@ -14,6 +16,8 @@ impl From<FabaSlot> for SlotDto {
         Self {
             index: value.index,
             name: value.name.unwrap_or_else(|| String::from("No name")),
+            track_count: value.track_count,
+            exists: value.exists,
         }
     }
 }
@@ -21,7 +25,7 @@ impl From<FabaSlot> for SlotDto {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackDto {
-    track_number: usize,
+    pub track_number: usize,
 }
 
 impl From<Track> for TrackDto {
@@ -37,4 +41,20 @@ impl From<Track> for TrackDto {
 pub struct NewTrackDto {
     pub track_number: usize,
     pub path: PathBuf,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceStatusDto {
+    pub connected: bool,
+    pub mountpoint: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteProgressDto {
+    pub current: usize,
+    pub total: usize,
+    pub track_name: String,
+    pub status: String,
 }

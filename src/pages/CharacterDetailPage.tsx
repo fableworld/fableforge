@@ -7,17 +7,34 @@ import {
   Box,
   ExternalLink,
   ImageOff,
+  Upload,
 } from "lucide-react";
 import { charactersAtom } from "@/stores/registries";
 import { registryService } from "@/services/registry";
+import { deviceStatusAtom, writeProgressAtom } from "@/stores/device";
+import { deviceService } from "@/services/device";
+import { SlotSelectionDialog } from "@/components/SlotSelectionDialog";
+import { WriteProgressDialog } from "@/components/WriteProgressDialog";
+import { OverwriteConfirmDialog } from "@/components/OverwriteConfirmDialog";
 import type { Character } from "@/lib/schemas";
+import type { SlotInfo, WriteProgress } from "@/stores/device";
 
 export function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [characters] = useAtom(charactersAtom);
   const setCharacters = useSetAtom(charactersAtom);
+  const [device] = useAtom(deviceStatusAtom);
   const [character, setCharacter] = useState<Character | undefined>();
+
+  // Write flow state
+  const [slots, setSlots] = useState<SlotInfo[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotDialogOpen, setSlotDialogOpen] = useState(false);
+  const [overwriteDialogOpen, setOverwriteDialogOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
+  const [progressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [progress, setProgress] = useAtom(writeProgressAtom);
 
   const loadIfNeeded = useCallback(async () => {
     if (characters.length === 0) {
@@ -35,6 +52,60 @@ export function CharacterDetailPage() {
       setCharacter(characters.find((c) => c.id === id));
     }
   }, [id, characters]);
+
+  // Listen for write progress events
+  useEffect(() => {
+    const unlisten = deviceService.onWriteProgress((p: WriteProgress) => {
+      setProgress(p);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [setProgress]);
+
+  const handleWriteToDevice = async () => {
+    if (!device.connected) return;
+    setSlotsLoading(true);
+    setSlotDialogOpen(true);
+    try {
+      const deviceSlots = await deviceService.getSlots();
+      setSlots(deviceSlots);
+    } catch (err) {
+      console.error("Failed to load slots:", err);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  const handleSlotSelected = (slotIndex: number) => {
+    const slot = slots.find((s) => s.index === slotIndex);
+    if (!slot) return;
+    setSelectedSlot(slot);
+    setSlotDialogOpen(false);
+
+    if (slot.exists && slot.trackCount > 0) {
+      setOverwriteDialogOpen(true);
+    } else {
+      startWrite(slotIndex);
+    }
+  };
+
+  const startWrite = async (slotIndex: number) => {
+    if (!character) return;
+    setOverwriteDialogOpen(false);
+    setProgress({ current: 0, total: character.tracks.length, trackName: "", status: "writing" });
+    setProgressDialogOpen(true);
+
+    try {
+      const trackPaths = character.tracks
+        .map((t) => t.url)
+        .filter((url): url is string => url !== undefined);
+      await deviceService.writeCharacterToSlot(slotIndex, trackPaths);
+    } catch (err) {
+      console.error("Write failed:", err);
+      setProgress((p) => ({ ...p, status: "error" }));
+    }
+  };
 
   if (!character) {
     return (
@@ -66,6 +137,23 @@ export function CharacterDetailPage() {
         <button className="btn btn--ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} />
           Back
+        </button>
+
+        {/* Write to Device button */}
+        <button
+          className="btn btn--primary"
+          onClick={handleWriteToDevice}
+          disabled={!device.connected || character.tracks.length === 0}
+          title={
+            !device.connected
+              ? "No device connected"
+              : character.tracks.length === 0
+              ? "No tracks to write"
+              : "Write character to device"
+          }
+        >
+          <Upload size={16} />
+          Write to Device
         </button>
       </header>
 
@@ -199,6 +287,39 @@ export function CharacterDetailPage() {
           )}
         </div>
       </div>
+
+      {/* --- Write-to-device dialogs --- */}
+      <SlotSelectionDialog
+        open={slotDialogOpen}
+        onOpenChange={setSlotDialogOpen}
+        slots={slots}
+        suggestedSlot={character.device_address}
+        onSelectSlot={handleSlotSelected}
+        loading={slotsLoading}
+      />
+
+      {selectedSlot && (
+        <OverwriteConfirmDialog
+          open={overwriteDialogOpen}
+          onOpenChange={setOverwriteDialogOpen}
+          slotIndex={selectedSlot.index}
+          currentName={selectedSlot.name}
+          currentTrackCount={selectedSlot.trackCount}
+          newCharacterName={character.name}
+          onOverwrite={() => startWrite(selectedSlot.index)}
+          onChangeSlot={() => {
+            setOverwriteDialogOpen(false);
+            setSlotDialogOpen(true);
+          }}
+        />
+      )}
+
+      <WriteProgressDialog
+        open={progressDialogOpen}
+        onOpenChange={setProgressDialogOpen}
+        progress={progress}
+        onRetry={selectedSlot ? () => startWrite(selectedSlot.index) : undefined}
+      />
     </>
   );
 }

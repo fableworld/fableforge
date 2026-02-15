@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useAtom, useSetAtom } from "jotai";
 import {
@@ -11,11 +12,25 @@ import {
 } from "lucide-react";
 import { deviceStatusAtom } from "@/stores/device";
 import { themeAtom, toggleThemeAtom } from "@/stores/theme";
+import { deviceService } from "@/services/device";
 
 export function Sidebar() {
-  const [device] = useAtom(deviceStatusAtom);
+  const [device, setDevice] = useAtom(deviceStatusAtom);
   const [theme] = useAtom(themeAtom);
   const toggleTheme = useSetAtom(toggleThemeAtom);
+
+  // Listen for device plug/unplug events
+  useEffect(() => {
+    // Check device status on mount
+    deviceService.checkDevice().then(setDevice).catch(() => {});
+
+    const unlisten = deviceService.onDeviceStatusChanged((status) => {
+      setDevice(status);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [setDevice]);
 
   return (
     <aside className="sidebar no-select">

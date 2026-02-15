@@ -1,17 +1,24 @@
-use tauri::{AppHandle, Manager, State};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::core::error::FabaError;
-use crate::dto::fababox::{SlotDto, TrackDto, NewTrackDto};
+use crate::dto::fababox::{DeviceStatusDto, SlotDto, TrackDto, NewTrackDto, WriteProgressDto};
 use crate::faba::FabaBox;
+use crate::mki::encode_using_tempfile;
 
 mod mki;
 mod faba;
 mod core;
 mod dto;
 
+type FabaState = Arc<Mutex<Option<FabaBox>>>;
+
 #[tauri::command]
-fn load_slots(maybe_faba: State<Option<FabaBox>>) -> Result<Vec<SlotDto>, FabaError> {
-    let Some(ref faba) = *maybe_faba else {
+fn load_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaError> {
+    let guard = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref faba) = *guard else {
         return Err(FabaError::NotDetected)
     };
     let res = faba
@@ -23,8 +30,9 @@ fn load_slots(maybe_faba: State<Option<FabaBox>>) -> Result<Vec<SlotDto>, FabaEr
 }
 
 #[tauri::command]
-fn load_tracks(maybe_faba: State<Option<FabaBox>>, slot: usize) -> Result<Vec<TrackDto>, FabaError> {
-    let Some(ref faba) = *maybe_faba else {
+fn load_tracks(maybe_faba: State<FabaState>, slot: usize) -> Result<Vec<TrackDto>, FabaError> {
+    let guard = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref faba) = *guard else {
         return Err(FabaError::NotDetected)
     };
 
@@ -39,13 +47,20 @@ fn load_tracks(maybe_faba: State<Option<FabaBox>>, slot: usize) -> Result<Vec<Tr
 }
 
 #[tauri::command]
-async fn write_tracks<'a>(maybe_faba: State<'a, Option<FabaBox>>, slot: usize, new_tracks: Vec<NewTrackDto>) -> Result<(), FabaError> {
-    let Some(ref faba) = *maybe_faba else {
-        return Err(FabaError::NotDetected)
+async fn write_tracks(maybe_faba: State<'_, FabaState>, slot: usize, new_tracks: Vec<NewTrackDto>) -> Result<(), FabaError> {
+    // Get the mountpoint while holding the lock, then drop it
+    let mountpoint = {
+        let guard = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+        let Some(ref faba) = *guard else {
+            return Err(FabaError::NotDetected)
+        };
+        faba.mountpoint_path()
     };
 
     for track in new_tracks {
-        faba.write_track(slot, track.track_number, track.path)
+        let collection_dir = mountpoint.join(format!("MKI01/K5{slot:03}"));
+        let track_path = collection_dir.join(format!("CP{:02}.MKI", track.track_number + 1));
+        encode_using_tempfile(track.path, track_path, slot, track.track_number + 1)
             .await
             .map_err(|err| {
                 eprintln!("Write error - {err}");
@@ -78,13 +93,153 @@ async fn copy_audio_file(
     Ok(dest.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn check_device(maybe_faba: State<FabaState>) -> DeviceStatusDto {
+    let guard = maybe_faba.lock().ok();
+    let connected = guard.as_ref().map(|g| g.is_some()).unwrap_or(false);
+    DeviceStatusDto {
+        connected,
+        mountpoint: if connected {
+            guard.and_then(|g| g.as_ref().map(|f| f.mountpoint_str()))
+        } else {
+            None
+        },
+    }
+}
+
+#[tauri::command]
+fn get_device_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaError> {
+    let guard = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref faba) = *guard else {
+        return Err(FabaError::NotDetected)
+    };
+    let res = faba
+        .list_all_slots()
+        .into_iter()
+        .map(From::from)
+        .collect();
+    Ok(res)
+}
+
+#[tauri::command]
+async fn write_character_to_slot(
+    app: AppHandle,
+    maybe_faba: State<'_, FabaState>,
+    slot: usize,
+    tracks: Vec<PathBuf>,
+) -> Result<(), FabaError> {
+    let total = tracks.len();
+
+    // Get mountpoint and clear slot while holding lock (sync operations)
+    let mountpoint = {
+        let guard = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+        let Some(ref faba) = *guard else {
+            return Err(FabaError::NotDetected)
+        };
+        faba.clear_slot(slot).map_err(|_| FabaError::Communication)?;
+        faba.mountpoint_path()
+    };
+    // Lock is dropped here
+
+    let collection_dir = mountpoint.join(format!("MKI01/K5{slot:03}"));
+    std::fs::create_dir_all(&collection_dir).map_err(|_| FabaError::Communication)?;
+
+    for (i, track_path) in tracks.iter().enumerate() {
+        let track_name = track_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("track")
+            .to_string();
+
+        // Emit progress
+        let _ = app.emit("write-progress", WriteProgressDto {
+            current: i,
+            total,
+            track_name: track_name.clone(),
+            status: "writing".into(),
+        });
+
+        // Write track using standalone function (no lock needed)
+        let dest = collection_dir.join(format!("CP{:02}.MKI", i + 1));
+        encode_using_tempfile(track_path, dest, slot, i + 1)
+            .await
+            .map_err(|err| {
+                eprintln!("Write error for track {i}: {err}");
+                let _ = app.emit("write-progress", WriteProgressDto {
+                    current: i,
+                    total,
+                    track_name,
+                    status: "error".into(),
+                });
+                FabaError::Communication
+            })?;
+    }
+
+    // Emit done
+    let _ = app.emit("write-progress", WriteProgressDto {
+        current: total,
+        total,
+        track_name: String::new(),
+        status: "done".into(),
+    });
+
+    Ok(())
+}
+
+fn start_device_polling(app: AppHandle, faba_state: FabaState) {
+    std::thread::spawn(move || {
+        let mut was_connected = {
+            let guard = faba_state.lock().unwrap();
+            guard.is_some()
+        };
+
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+
+            let new_faba = FabaBox::detect();
+            let is_connected = new_faba.is_some();
+
+            if is_connected != was_connected {
+                let mountpoint = new_faba.as_ref().map(|f| f.mountpoint_str());
+                {
+                    let mut guard = faba_state.lock().unwrap();
+                    *guard = new_faba;
+                }
+                let _ = app.emit("device-status-changed", DeviceStatusDto {
+                    connected: is_connected,
+                    mountpoint,
+                });
+                was_connected = is_connected;
+            }
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::default().build())
-        .manage(FabaBox::detect())
-        .invoke_handler(tauri::generate_handler![load_slots, load_tracks, write_tracks, copy_audio_file])
+        .setup(|app| {
+            let faba = FabaBox::detect();
+            let faba_state: FabaState = Arc::new(Mutex::new(faba));
+
+            app.manage(faba_state.clone());
+
+            // Start device polling in background
+            start_device_polling(app.handle().clone(), faba_state);
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            load_slots,
+            load_tracks,
+            write_tracks,
+            copy_audio_file,
+            check_device,
+            get_device_slots,
+            write_character_to_slot,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
