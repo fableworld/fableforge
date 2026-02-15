@@ -119,13 +119,32 @@ fn get_device_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaEr
     let Some(ref faba) = *guard else {
         return Err(FabaError::NotDetected)
     };
-    let res = faba
+    
+    // We also need to cross-ref with the DB to get names
+    let mut characters: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
+    if let Ok(conn) = crate::db::device_db::open_device_db(&faba.mountpoint_path()) {
+        if let Ok(all_chars) = crate::db::device_db::get_all_characters(&conn) {
+            for c in all_chars {
+                characters.insert(c.slot_index, c.character_name);
+            }
+        }
+    }
+
+    let res: Vec<SlotDto> = faba
         .list_all_slots()
         .into_iter()
-        .map(From::from)
+        .map(|mut s| {
+            if let Some(name) = characters.get(&s.index) {
+                s.name = Some(name.clone());
+            }
+            SlotDto::from(s)
+        })
         .collect();
+    println!("get_device_slots: Found {} slots", res.len());
     Ok(res)
+
 }
+
 
 // --- New Two-Phase Commit Write Command ---
 

@@ -138,7 +138,8 @@ pub async fn write_character(
 
         // Encode to .partial file (async — no DB lock held)
         let encode_result =
-            mki::encode_using_tempfile(track_path, &partial_path, slot, track_num).await;
+            mki::encode_using_tempfile(track_path, &partial_path, 5000 + slot, track_num).await;
+
 
         if let Err(err) = encode_result {
             eprintln!("Write error for track {track_num}: {err}");

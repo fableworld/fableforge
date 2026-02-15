@@ -99,9 +99,11 @@ export function DeviceInventoryPage() {
               <div key={slot.index} className="card inventory-item">
                 <div className="inventory-item__info">
                   <div className="inventory-item__slot-badge">
-                    Slot {slot.index + 1}
+                    Slot {slot.index}
                   </div>
+
                   <h3 className="inventory-item__name">{slot.characterName || "Unknown Character"}</h3>
+
                   <div className="inventory-item__meta">
                     {slot.trackCount} track{slot.trackCount !== 1 ? "s" : ""}
                   </div>
