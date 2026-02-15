@@ -66,6 +66,32 @@ export interface PendingOperationDto {
   totalTracks: number;
 }
 
+export type SlotCheckResult =
+  | { type: "empty" }
+  | {
+      type: "sameCharacterSameContent";
+      slotIndex: number;
+      characterName: string;
+      nfcPayload: string | null;
+    }
+  | {
+      type: "sameCharacterDifferentContent";
+      slotIndex: number;
+      characterName: string;
+    }
+  | {
+      type: "differentCharacter";
+      slotIndex: number;
+      existingCharacterName: string;
+      existingCharacterId: string;
+      existingRegistryUrl: string | null;
+    }
+  | {
+      type: "inconsistent";
+      slotIndex: number;
+      fileCount: number;
+    };
+
 export const deviceService = {
   async checkDevice(): Promise<DeviceStatus> {
     return invoke<DeviceStatus>("check_device");
@@ -75,11 +101,38 @@ export const deviceService = {
     return invoke<SlotInfo[]>("get_device_slots");
   },
 
-  async writeCharacterToSlot(
-    slot: number,
-    trackPaths: string[]
-  ): Promise<void> {
-    return invoke("write_character_to_slot", { slot, tracks: trackPaths });
+  async writeCharacterToSlot(params: {
+    slot: number;
+    tracks: string[];
+    characterId?: string;
+    characterName?: string;
+    description?: string;
+    previewImageUrl?: string;
+    registryUrl?: string;
+    registryName?: string;
+    contentHash?: string;
+  }): Promise<string> {
+    return invoke<string>("write_character_to_slot", params);
+  },
+
+  async checkSlotStatus(params: {
+    slotIndex: number;
+    registryUrl: string;
+    characterId: string;
+    contentHash?: string;
+  }): Promise<SlotCheckResult> {
+    return invoke<SlotCheckResult>("check_slot_status", params);
+  },
+
+  async checkCharacterOnDevice(params: {
+    registryUrl: string;
+    characterId: string;
+  }): Promise<DeviceCharacterDto | null> {
+    return invoke<DeviceCharacterDto | null>("check_character_on_device", params);
+  },
+
+  async deleteDeviceCharacter(slotIndex: number): Promise<void> {
+    return invoke("delete_device_character", { slotIndex });
   },
 
   async getDeviceCharacters(): Promise<DeviceCharacterDto[]> {

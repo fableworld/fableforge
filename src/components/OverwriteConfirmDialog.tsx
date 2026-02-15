@@ -1,27 +1,54 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, RefreshCw } from "lucide-react";
+import type { SlotCheckResult } from "@/services/device";
 
 interface OverwriteConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   slotIndex: number;
-  currentName: string;
-  currentTrackCount: number;
-  newCharacterName: string;
-  onOverwrite: () => void;
-  onChangeSlot: () => void;
+  checkResult: SlotCheckResult;
+  onConfirm: () => void;
 }
 
 export function OverwriteConfirmDialog({
   open,
   onOpenChange,
   slotIndex,
-  currentName,
-  currentTrackCount,
-  newCharacterName,
-  onOverwrite,
-  onChangeSlot,
+  checkResult,
+  onConfirm,
 }: OverwriteConfirmDialogProps) {
+  const isUpdate = checkResult.type === "sameCharacterDifferentContent";
+  const isReinstall = checkResult.type === "sameCharacterSameContent";
+  const isDifferent = checkResult.type === "differentCharacter";
+  const isInconsistent = checkResult.type === "inconsistent";
+
+  const getTitle = () => {
+    if (isUpdate) return "Update Character";
+    if (isReinstall) return "Character Already Present";
+    return "Slot Occupied";
+  };
+
+  const getDescription = () => {
+    if (isUpdate) {
+      return `A different version of "${checkResult.characterName}" is already on slot ${slotIndex}. Do you want to update it?`;
+    }
+    if (isReinstall) {
+      return `"${checkResult.characterName}" is already on slot ${slotIndex} and appears to be identical. Re-install anyway?`;
+    }
+    if (isDifferent) {
+      return `Slot ${slotIndex} is occupied by "${checkResult.existingCharacterName}". Writing here will replace it.`;
+    }
+    if (isInconsistent) {
+      return `Slot ${slotIndex} contains ${checkResult.fileCount} file(s) not recognized by FableForge. Overwrite them?`;
+    }
+    return `Slot ${slotIndex} already contains content. Writing here will replace the existing data.`;
+  };
+
+  const getIcon = () => {
+    if (isUpdate) return <RefreshCw size={18} className="text-primary" />;
+    return <AlertTriangle size={18} className="overwrite-warning-icon" />;
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -29,8 +56,8 @@ export function OverwriteConfirmDialog({
         <Dialog.Content className="dialog-content">
           <div className="dialog-header">
             <Dialog.Title className="dialog-title">
-              <AlertTriangle size={18} className="overwrite-warning-icon" />
-              Slot Occupied
+              {getIcon()}
+              {getTitle()}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="btn btn--ghost btn--icon btn--sm">
@@ -40,37 +67,34 @@ export function OverwriteConfirmDialog({
           </div>
 
           <Dialog.Description className="dialog-description">
-            Slot {slotIndex} already contains content. Writing here will replace
-            the existing data.
+            {getDescription()}
           </Dialog.Description>
 
-          <div className="overwrite-compare">
-            <div className="overwrite-compare__item overwrite-compare__item--current">
-              <span className="overwrite-compare__label">Currently installed</span>
-              <span className="overwrite-compare__name">{currentName}</span>
-              <span className="overwrite-compare__meta">
-                {currentTrackCount} track{currentTrackCount !== 1 ? "s" : ""}
-              </span>
+          {isDifferent && (
+            <div className="overwrite-compare" style={{ marginTop: "var(--space-4)" }}>
+              <div className="overwrite-compare__item overwrite-compare__item--current">
+                <span className="overwrite-compare__label">Current</span>
+                <span className="overwrite-compare__name">
+                  {checkResult.existingCharacterName}
+                </span>
+              </div>
+              <div className="overwrite-compare__arrow">→</div>
+              <div className="overwrite-compare__item overwrite-compare__item--new">
+                <span className="overwrite-compare__label">New</span>
+                <span className="overwrite-compare__name">Target Slot {slotIndex}</span>
+              </div>
             </div>
-            <div className="overwrite-compare__arrow">→</div>
-            <div className="overwrite-compare__item overwrite-compare__item--new">
-              <span className="overwrite-compare__label">Will be written</span>
-              <span className="overwrite-compare__name">{newCharacterName}</span>
-            </div>
-          </div>
+          )}
 
           <div className="dialog-actions">
+            <Dialog.Close asChild>
+              <button className="btn btn--secondary">Cancel</button>
+            </Dialog.Close>
             <button
-              className="btn btn--secondary"
-              onClick={onChangeSlot}
+              className={`btn btn--primary ${!isUpdate && !isReinstall ? "btn--danger" : ""}`}
+              onClick={onConfirm}
             >
-              Change Slot
-            </button>
-            <button
-              className="btn btn--primary btn--danger"
-              onClick={onOverwrite}
-            >
-              Overwrite
+              {isUpdate ? "Update" : isReinstall ? "Re-install" : "Overwrite"}
             </button>
           </div>
         </Dialog.Content>

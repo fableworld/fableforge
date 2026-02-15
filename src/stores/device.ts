@@ -16,7 +16,7 @@ export interface WriteProgress {
   current: number;
   total: number;
   trackName: string;
-  status: "idle" | "writing" | "done" | "error";
+  status: "idle" | "encoding" | "writing" | "done" | "error";
 }
 
 export const deviceStatusAtom = atom<DeviceStatus>({ connected: false });
