@@ -1,5 +1,5 @@
 import { load } from "@tauri-apps/plugin-store";
-import type { Character, StoredRegistry, RegistryMeta } from "./schemas";
+import type { Character, Collection, StoredRegistry, RegistryMeta } from "./schemas";
 
 const STORE_PATH = "fableforge-data.json";
 
@@ -87,3 +87,42 @@ export async function upsertCharactersForRegistry(
   const tagged = newCharacters.map((c) => ({ ...c, registry_url: registryUrl }));
   await setStoredCharacters([...others, ...tagged]);
 }
+
+// --- Collections ---
+
+export async function getCollections(): Promise<Collection[]> {
+  const store = await getStore();
+  const collections = await store.get<Collection[]>("collections");
+  return collections ?? [];
+}
+
+export async function saveCollection(collection: Collection): Promise<void> {
+  const store = await getStore();
+  const collections = await getCollections();
+  const idx = collections.findIndex((c) => c.id === collection.id);
+
+  if (idx >= 0) {
+    collections[idx] = { ...collection, updated_at: new Date().toISOString() };
+  } else {
+    collections.push(collection);
+  }
+
+  await store.set("collections", collections);
+}
+
+export async function removeCollection(id: string): Promise<void> {
+  const store = await getStore();
+  const collections = await getCollections();
+  await store.set(
+    "collections",
+    collections.filter((c) => c.id !== id)
+  );
+}
+
+export async function getCollectionById(
+  id: string
+): Promise<Collection | undefined> {
+  const collections = await getCollections();
+  return collections.find((c) => c.id === id);
+}
+

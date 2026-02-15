@@ -24,6 +24,8 @@ export function App() {
           <Route path="/" element={<GalleryPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/editor" element={<EditorPage />} />
+          <Route path="/editor/:collectionId" element={<EditorPage />} />
+          <Route path="/editor/:collectionId/:characterId" element={<EditorPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/character/:id" element={<CharacterDetailPage />} />
         </Routes>

@@ -61,3 +61,17 @@ export interface StoredRegistry {
   addedAt: number;
   lastUpdated: number;
 }
+
+// --- Collection (local) ---
+export const CollectionSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  cover_image: z.string().optional(),
+  characters: z.array(CharacterSchema),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export type Collection = z.infer<typeof CollectionSchema>;
+
