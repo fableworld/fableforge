@@ -11,13 +11,62 @@ import { CharacterDetailPage } from "@/pages/CharacterDetailPage";
 import { DeviceInventoryPage } from "@/pages/DeviceInventoryPage";
 
 import { ToastProvider } from "@/components/ToastProvider";
+import { RecoveryDialog } from "@/components/RecoveryDialog";
+import { deviceService, type PendingOperation } from "@/services/device";
+import { useState } from "react";
+import { useSetAtom } from "jotai";
+import { deviceStatusAtom } from "@/stores/device";
 
 export function App() {
   const [theme] = useAtom(themeAtom);
+  const [pendingOps, setPendingOps] = useState<PendingOperation[]>([]);
+  const setDevice = useSetAtom(deviceStatusAtom);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // Recovery & Device detection
+  useEffect(() => {
+    const checkRecovery = async () => {
+      try {
+        const ops = await deviceService.getPendingOperations();
+        setPendingOps(ops);
+      } catch (e) {
+        console.error("Failed to check recovery:", e);
+      }
+    };
+
+    // Initial check
+    deviceService.checkDevice().then((status) => {
+      setDevice(status);
+      if (status.connected) checkRecovery();
+    }).catch(() => {});
+
+    // Listen for changes
+    const unlisten = deviceService.onDeviceStatusChanged((status) => {
+      setDevice(status);
+      if (status.connected) {
+        checkRecovery();
+      } else {
+        setPendingOps([]);
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [setDevice]);
+
+  const handleRecoveryResolved = async () => {
+    // Refresh the list
+    try {
+      const ops = await deviceService.getPendingOperations();
+      setPendingOps(ops);
+    } catch (e) {
+      setPendingOps([]);
+    }
+  };
 
   return (
     <ToastProvider>
@@ -35,6 +84,10 @@ export function App() {
             <Route path="/character/:id" element={<CharacterDetailPage />} />
           </Routes>
         </main>
+        <RecoveryDialog 
+          operations={pendingOps} 
+          onResolved={handleRecoveryResolved} 
+        />
       </div>
     </ToastProvider>
   );

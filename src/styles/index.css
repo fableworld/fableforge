@@ -1806,4 +1806,47 @@ textarea.dialog-input {
   background: rgba(239, 68, 68, 0.08) !important;
 }
 
+/* --- Recovery List --- */
+.recovery-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.recovery-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.recovery-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recovery-item__type {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.recovery-item__slot {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.recovery-item__time {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+
 

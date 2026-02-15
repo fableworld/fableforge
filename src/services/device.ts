@@ -9,21 +9,9 @@ export interface SlotDto {
   exists: boolean;
 }
 
-export interface DeviceStatus {
-  connected: boolean;
-  mountpoint?: string;
-}
-
 interface DeviceStatusDto {
   connected: boolean;
   mountpoint: string | null;
-}
-
-export interface WriteProgress {
-  current: number;
-  total: number;
-  trackName: string;
-  status: "idle" | "encoding" | "writing" | "done" | "error";
 }
 
 interface WriteProgressDto {
@@ -32,6 +20,7 @@ interface WriteProgressDto {
   track_name: string;
   status: string;
 }
+
 
 export interface TrackDto {
   trackNumber: number;
@@ -79,17 +68,6 @@ export interface DeviceCharacterDto {
   contentHash: string | null;
 }
 
-export interface PendingOperationDto {
-  id: number;
-  slotIndex: number;
-  operation: string; // "write" | "delete" | "upgrade"
-  startedAt: string;
-  characterId: string | null;
-  registryUrl: string | null;
-  completedTracks: number;
-  totalTracks: number;
-}
-
 export type SlotCheckResult =
   | { type: "empty" }
   | {
@@ -118,7 +96,11 @@ export type SlotCheckResult =
 
 export const deviceService = {
   async checkDevice(): Promise<DeviceStatus> {
-    return invoke<DeviceStatus>("check_device");
+    const status = await invoke<DeviceStatusDto>("check_device");
+    return {
+      connected: status.connected,
+      mountpoint: status.mountpoint || undefined,
+    };
   },
 
   async getSlots(): Promise<SlotInfo[]> {

@@ -4,9 +4,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::core::error::FabaError;
-use crate::db::device_db::{
-    CharacterStatus, InsertCharacterParams, InsertPendingOpParams, PendingOperation,
-};
+use crate::db::device_db;
 use crate::device::{integrity, writer, recovery};
 use crate::device::writer::WriteCharacterParams;
 use crate::dto::device_management::{DeviceCharacterDto, PendingOperationDto};
@@ -301,7 +299,7 @@ async fn rollback_pending_operation(
 ) -> Result<(), FabaError> {
     let mountpoint = {
         let faba = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
-        faba.as_ref().ok_or(FabaError::NotDetected)?.mountpoint.clone()
+        faba.as_ref().ok_or(FabaError::NotDetected)?.mountpoint_path()
     };
 
     let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
@@ -321,7 +319,7 @@ async fn complete_pending_delete(
 ) -> Result<(), FabaError> {
     let mountpoint = {
         let faba = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
-        faba.as_ref().ok_or(FabaError::NotDetected)?.mountpoint.clone()
+        faba.as_ref().ok_or(FabaError::NotDetected)?.mountpoint_path()
     };
 
     let guard = db_state.lock().map_err(|_| FabaError::Communication)?;

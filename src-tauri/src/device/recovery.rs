@@ -1,7 +1,7 @@
 use std::path::Path;
 use rusqlite::Connection;
 use crate::core::error::FabaError;
-use crate::db::device_db::{self, PendingOperation, CharacterStatus};
+use crate::db::device_db;
 use crate::device::integrity;
 
 /// Action to take for recovery.
@@ -12,7 +12,7 @@ pub enum RecoveryAction {
 }
 
 /// Checks the database for pending operations and returns suggested actions.
-pub fn check_pending_operations(conn: &Connection) -> Result<Vec<db::PendingOp>, FabaError> {
+pub fn check_pending_operations(conn: &Connection) -> Result<Vec<device_db::PendingOp>, FabaError> {
     device_db::get_all_pending_ops(conn).map_err(|e| {
         FabaError::Database(format!("Failed to query pending operations: {}", e))
     })
@@ -29,7 +29,7 @@ pub fn rollback_operation(
     let _ = integrity::cleanup_partial_files(mountpoint, slot_index);
 
     // 2. Remove character entry if it's still in 'writing' or 'upgrading' status
-    if let Ok(Some(character)) = device_db::get_character(conn, slot_index) {
+    if let Ok(Some(character)) = device_db::get_character_by_slot(conn, slot_index) {
         if character.status == "writing" || character.status == "upgrading" {
             let _ = device_db::delete_character(conn, slot_index);
         }
