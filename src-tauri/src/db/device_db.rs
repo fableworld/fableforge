@@ -147,6 +147,12 @@ pub fn open_device_db(mountpoint: &Path) -> SqliteResult<Connection> {
     Ok(conn)
 }
 
+/// Initialize schema on an already-open connection (for testing with in-memory DBs).
+pub fn open_device_db_conn(conn: &Connection) -> SqliteResult<()> {
+    conn.pragma_update(None, "journal_mode", "wal")?;
+    init_schema(conn)
+}
+
 fn init_schema(conn: &Connection) -> SqliteResult<()> {
     // Check if we need to create or migrate
     let version = get_schema_version(conn);
