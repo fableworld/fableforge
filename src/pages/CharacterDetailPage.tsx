@@ -11,14 +11,9 @@ import {
 } from "lucide-react";
 import { charactersAtom } from "@/stores/registries";
 import { registryService } from "@/services/registry";
-import { deviceStatusAtom, writeProgressAtom } from "@/stores/device";
-import { deviceService } from "@/services/device";
-import { useToast } from "@/components/ToastProvider";
-import { SlotSelectionDialog } from "@/components/SlotSelectionDialog";
-import { WriteProgressDialog } from "@/components/WriteProgressDialog";
-import { OverwriteConfirmDialog } from "@/components/OverwriteConfirmDialog";
+import { deviceStatusAtom } from "@/stores/device";
+import { WriteFlowOrchestrator } from "@/components/WriteFlowOrchestrator";
 import type { Character } from "@/lib/schemas";
-import type { SlotInfo, WriteProgress } from "@/stores/device";
 
 export function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,17 +21,10 @@ export function CharacterDetailPage() {
   const [characters] = useAtom(charactersAtom);
   const setCharacters = useSetAtom(charactersAtom);
   const [device] = useAtom(deviceStatusAtom);
-  const { show: toast } = useToast();
   const [character, setCharacter] = useState<Character | undefined>();
 
   // Write flow state
-  const [slots, setSlots] = useState<SlotInfo[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotDialogOpen, setSlotDialogOpen] = useState(false);
-  const [overwriteDialogOpen, setOverwriteDialogOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
-  const [progressDialogOpen, setProgressDialogOpen] = useState(false);
-  const [progress, setProgress] = useAtom(writeProgressAtom);
+  const [writeFlowOpen, setWriteFlowOpen] = useState(false);
 
   const loadIfNeeded = useCallback(async () => {
     if (characters.length === 0) {
@@ -55,59 +43,11 @@ export function CharacterDetailPage() {
     }
   }, [id, characters]);
 
-  // Listen for write progress events
-  useEffect(() => {
-    const unlisten = deviceService.onWriteProgress((p: WriteProgress) => {
-      setProgress(p);
-    });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, [setProgress]);
 
-  const handleWriteToDevice = async () => {
+
+  const handleWriteToDevice = () => {
     if (!device.connected) return;
-    setSlotsLoading(true);
-    setSlotDialogOpen(true);
-    try {
-      const deviceSlots = await deviceService.getSlots();
-      setSlots(deviceSlots);
-    } catch (err) {
-      console.error("Failed to load slots:", err);
-    } finally {
-      setSlotsLoading(false);
-    }
-  };
-
-  const handleSlotSelected = (slotIndex: number) => {
-    const slot = slots.find((s) => s.index === slotIndex);
-    if (!slot) return;
-    setSelectedSlot(slot);
-    setSlotDialogOpen(false);
-
-    if (slot.exists && slot.trackCount > 0) {
-      setOverwriteDialogOpen(true);
-    } else {
-      startWrite(slotIndex);
-    }
-  };
-
-  const startWrite = async (slotIndex: number) => {
-    if (!character) return;
-    setOverwriteDialogOpen(false);
-    setProgress({ current: 0, total: character.tracks.length, trackName: "", status: "writing" });
-    setProgressDialogOpen(true);
-
-    try {
-      const trackPaths = character.tracks
-        .map((t) => t.url)
-        .filter((url): url is string => url !== undefined);
-      await deviceService.writeCharacterToSlot(slotIndex, trackPaths);
-      toast(`Successfully written to Slot ${slotIndex + 1}`, "success");
-    } catch (err) {
-      console.error("Write failed:", err);
-      setProgress((p) => ({ ...p, status: "error" }));
-    }
+    setWriteFlowOpen(true);
   };
 
   if (!character) {
@@ -291,37 +231,20 @@ export function CharacterDetailPage() {
         </div>
       </div>
 
-      {/* --- Write-to-device dialogs --- */}
-      <SlotSelectionDialog
-        open={slotDialogOpen}
-        onOpenChange={setSlotDialogOpen}
-        slots={slots}
-        suggestedSlot={character.device_address}
-        onSelectSlot={handleSlotSelected}
-        loading={slotsLoading}
-      />
-
-      {selectedSlot && (
-        <OverwriteConfirmDialog
-          open={overwriteDialogOpen}
-          onOpenChange={setOverwriteDialogOpen}
-          slotIndex={selectedSlot.index}
-          currentName={selectedSlot.name}
-          currentTrackCount={selectedSlot.trackCount}
-          newCharacterName={character.name}
-          onOverwrite={() => startWrite(selectedSlot.index)}
-          onChangeSlot={() => {
-            setOverwriteDialogOpen(false);
-            setSlotDialogOpen(true);
-          }}
-        />
-      )}
-
-      <WriteProgressDialog
-        open={progressDialogOpen}
-        onOpenChange={setProgressDialogOpen}
-        progress={progress}
-        onRetry={selectedSlot ? () => startWrite(selectedSlot.index) : undefined}
+      {/* Write Flow Orchestrator */}
+      <WriteFlowOrchestrator
+        open={writeFlowOpen}
+        onOpenChange={setWriteFlowOpen}
+        character={{
+          id: character.id,
+          name: character.name,
+          description: character.description,
+          previewImageUrl: character.preview_image,
+          registryUrl: character.registry_url,
+          tracks: character.tracks
+            .map((t) => t.local_path || t.url)
+            .filter((p): p is string => p !== undefined),
+        }}
       />
     </>
   );

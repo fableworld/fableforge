@@ -54,23 +54,42 @@ The app allows users to **discover, create, manage, and write** audio character 
   - Push (publish) and pull (subscribe) operations.
   - Conflict resolution: last-write-wins with manual override option.
 
-### 3.3 Device Writing
+### 3.3 Device Writing (Enhanced)
 
-> **Goal:** Streamlined, user-friendly process to write a character (set of audio tracks) from a collection to the FABA device.
+> **Goal:** Robust, safe, and traceable process to write characters to the FABA device, with comprehensive conflict detection and recovery from interrupted operations.
 
-- **Device detection:** Auto-detect FABA device connected via USB (mass storage mode). Show status indicator (connected/disconnected).
-- **Hot-plug support:** React to device connect/disconnect events in real-time.
-- **Write flow:**
-  1. User selects a character from any collection (local or remote).
-  2. App shows which device slot (address) to write to.
-  3. **If slot is empty or matches the same character:** Write directly (with progress indicator).
-  4. **If slot is occupied by a different character:** Show confirmation dialog:
-     - Display what is currently in that slot.
-     - Options: **Overwrite**, **Choose different address**, **Cancel**.
-     - Remind user to update the NFC tag address if the address changes.
-  5. **If only updating (tracks added/removed):** Show diff of changes, write delta.
+#### 3.3.1 Device Metadata Database
+- **SQLite DB on device:** A hidden `.fableforge.db` file in the device root stores metadata for all characters written by FableForge.
+- **Per-character data:** character ID, name, description, preview image (blob), registry URL/name, track count, tracks JSON, NFC payload, content hash, timestamps.
+- **Two-phase commit:** Each write/delete/upgrade operation follows a state machine: pending → in-progress → complete. A `pending_operations` WAL table tracks operations for crash recovery.
+- **Content hash:** SHA-256 of audio files + metadata, used for rapid update detection.
+
+#### 3.3.2 Safe Copy Strategy
+- Files are written with `.MKI.partial` extension during encoding.
+- After encoding completes, renamed to `.MKI`.
+- Post-rename verification (size/hash check) ensures integrity on FAT32.
+- Interrupted operations leave recognizable `.partial` files for cleanup.
+
+#### 3.3.3 Write Flow
+1. **Duplicate check:** Search DB for character (by registry URL + character ID). If found on another slot, ask user: use existing slot or write to a new one (duplicating).
+2. **Slot validation** (combined DB + filesystem check):
+   - **2.1 Slot empty:** Continue.
+   - **2.2 Slot occupied by same character:**
+     - **2.2.1 Content differs:** Ask confirmation to update.
+     - **2.2.2 Content identical:** Inform user, character already up to date.
+   - **2.3 Slot occupied by different character:** Ask confirmation to overwrite (showing both characters), or choose a different slot.
+   - **2.4 Inconsistency** (DB empty but files present from manual upload or older FableForge): Fail with descriptive error, ask user to clean slot manually.
+3. **Write execution:** Two-phase commit with progress feedback.
+4. **Post-write:** Show QR code for NFC tag writing (`fableforge-nfcwrite://K5XXX`).
+- User can **cancel** at any point during the flow.
+
 - **MKI encoding:** Preserve the existing MKI scrambling/encoding engine (rainbow-table based) exactly as-is.
 - **Slot initialization:** Ability to initialize device with placeholder tracks (existing feature, preserved).
+
+#### 3.3.4 Recovery on Device Connect
+- On device connection, check `pending_operations` for interrupted operations.
+- **Interrupted write/upgrade:** Ask user to complete (if registry reachable) or rollback (clean `.partial` files + remove DB entry).
+- **Interrupted delete:** Auto-complete without user prompt.
 
 ### 3.4 Data Model
 
@@ -111,6 +130,16 @@ The application adopts and extends OpenFable's registry JSON schema:
 **Extensions over OpenFable:**
 - `tracks[]` array with individual track metadata.
 - `device_address` field mapping to the physical slot on the device.
+
+### 3.5 Device Management
+
+> **Goal:** Dedicated UI to view and manage all characters installed on the connected FABA device.
+
+- **Device character grid:** Shows all characters from the device DB with cover images (stored as blobs), names, and slot numbers.
+- **Unknown registries:** If characters come from registries not tracked by this FableForge instance, show a banner with import wizard (registry name, URL, import button).
+- **Update detection:** For characters from known registries, compare content hash with latest local registry data. Show badge if update available.
+- **Character detail (device view):** Info from device DB, slot number, QR code for NFC writing, update button (if available), link to gallery detail (if registry known).
+- **Update flow:** Similar to write, but skip overwrite confirmation (same character, same slot — just verifies it's the right one).
 
 ---
 
@@ -166,10 +195,33 @@ The application adopts and extends OpenFable's registry JSON schema:
 2. Clicks a character → detail view (image, description, tracks, 3D models).
 3. Clicks "Write to Device" button.
 4. App checks device connection.
-5. Suggests slot address (or uses character's `device_address`).
-6. Shows confirmation with slot status (empty / occupied / same character).
-7. Writes tracks with progress bar.
-8. Success animation + reminder about NFC tag.
+5. Checks if character already exists on device (by registry + ID).
+   - If yes: offers to use existing slot or write to new one.
+6. User selects/confirms slot.
+7. App validates slot (DB + filesystem cross-check).
+   - Empty → proceed.
+   - Same character, different content → confirm update.
+   - Same character, same content → inform "already up to date".
+   - Different character → confirm overwrite or choose another slot.
+   - Inconsistency → error message, manual cleanup needed.
+8. Two-phase commit write with per-track progress bar.
+9. Success → show QR code (`fableforge-nfcwrite://K5XXX`) for NFC tag writing.
+
+### 5.5 Device Management
+
+1. User navigates to "Device" page.
+2. Grid shows all installed characters (from device DB, with cover images).
+3. Characters from unknown registries → banner with import wizard.
+4. Characters with updates available → badge indicator.
+5. Click character → device detail page (slot info, QR code, update button).
+6. Click "Update" → streamlined write flow (no overwrite confirmation needed).
+
+### 5.6 Recovery on Connect
+
+1. User connects FABA device with interrupted operations.
+2. Banner appears listing pending operations.
+3. For writes/upgrades: "Complete" (if registry reachable) or "Rollback".
+4. For deletes: auto-completed silently.
 
 ### 5.3 Create Custom Character
 
@@ -197,6 +249,7 @@ The application adopts and extends OpenFable's registry JSON schema:
 ## 7. Future Roadmap
 
 - **Deep link protocol:** `fableforge://write?character=uuid&registry=url` — receive write requests from OpenFable PWA.
+- **OpenFable NFC integration:** QR code scanning in OpenFable to write NFC tags directly from `fableforge-nfcwrite://K5XXX`.
 - **Multi-device management:** Support multiple FABA devices simultaneously.
 - **Audio editor:** Basic trim/normalize built into the app.
 - **Collection marketplace/discovery:** Curated list of community registries.
