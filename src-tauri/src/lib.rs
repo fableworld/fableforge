@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use rusqlite::Connection;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::core::error::FabaError;
+use crate::db::device_db;
+use crate::dto::device_management::{DeviceCharacterDto, PendingOperationDto};
 use crate::dto::fababox::{DeviceStatusDto, SlotDto, TrackDto, NewTrackDto, WriteProgressDto};
 use crate::faba::FabaBox;
 use crate::mki::encode_using_tempfile;
@@ -12,8 +15,10 @@ mod mki;
 mod faba;
 mod core;
 mod dto;
+mod db;
 
 type FabaState = Arc<Mutex<Option<FabaBox>>>;
+type DeviceDbState = Arc<Mutex<Option<Connection>>>;
 
 #[tauri::command]
 fn load_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaError> {
@@ -186,7 +191,48 @@ async fn write_character_to_slot(
     Ok(())
 }
 
-fn start_device_polling(app: AppHandle, faba_state: FabaState) {
+// --- Device DB Commands ---
+
+#[tauri::command]
+fn get_device_characters(
+    db_state: State<DeviceDbState>,
+) -> Result<Vec<DeviceCharacterDto>, FabaError> {
+    let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref conn) = *guard else {
+        return Err(FabaError::NotDetected);
+    };
+    let chars = device_db::get_all_characters(conn)?;
+    Ok(chars.into_iter().map(DeviceCharacterDto::from).collect())
+}
+
+#[tauri::command]
+fn get_device_character(
+    db_state: State<DeviceDbState>,
+    slot_index: usize,
+) -> Result<Option<DeviceCharacterDto>, FabaError> {
+    let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref conn) = *guard else {
+        return Err(FabaError::NotDetected);
+    };
+    let char = device_db::get_character_by_slot(conn, slot_index)?;
+    Ok(char.map(DeviceCharacterDto::from))
+}
+
+#[tauri::command]
+fn get_pending_operations(
+    db_state: State<DeviceDbState>,
+) -> Result<Vec<PendingOperationDto>, FabaError> {
+    let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref conn) = *guard else {
+        return Err(FabaError::NotDetected);
+    };
+    let ops = device_db::get_all_pending_ops(conn)?;
+    Ok(ops.into_iter().map(PendingOperationDto::from).collect())
+}
+
+// --- Device Polling ---
+
+fn start_device_polling(app: AppHandle, faba_state: FabaState, db_state: DeviceDbState) {
     std::thread::spawn(move || {
         let mut was_connected = {
             let guard = faba_state.lock().unwrap();
@@ -201,6 +247,28 @@ fn start_device_polling(app: AppHandle, faba_state: FabaState) {
 
             if is_connected != was_connected {
                 let mountpoint = new_faba.as_ref().map(|f| f.mountpoint_str());
+
+                // Update DB connection when device connects/disconnects
+                if is_connected {
+                    if let Some(ref faba) = new_faba {
+                        let mp = faba.mountpoint_path();
+                        match device_db::open_device_db(&mp) {
+                            Ok(conn) => {
+                                let mut db_guard = db_state.lock().unwrap();
+                                *db_guard = Some(conn);
+                                tracing::info!("Device DB opened at {:?}", mp);
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to open device DB: {}", e);
+                            }
+                        }
+                    }
+                } else {
+                    let mut db_guard = db_state.lock().unwrap();
+                    *db_guard = None;
+                    tracing::info!("Device DB closed");
+                }
+
                 {
                     let mut guard = faba_state.lock().unwrap();
                     *guard = new_faba;
@@ -222,12 +290,30 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             let faba = FabaBox::detect();
+
+            // Open DB if device is connected at startup
+            let db_conn = faba.as_ref().and_then(|f| {
+                let mp = f.mountpoint_path();
+                match device_db::open_device_db(&mp) {
+                    Ok(conn) => {
+                        tracing::info!("Device DB opened at startup: {:?}", mp);
+                        Some(conn)
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to open device DB at startup: {}", e);
+                        None
+                    }
+                }
+            });
+
             let faba_state: FabaState = Arc::new(Mutex::new(faba));
+            let db_state: DeviceDbState = Arc::new(Mutex::new(db_conn));
 
             app.manage(faba_state.clone());
+            app.manage(db_state.clone());
 
             // Start device polling in background
-            start_device_polling(app.handle().clone(), faba_state);
+            start_device_polling(app.handle().clone(), faba_state, db_state);
 
             Ok(())
         })
@@ -239,6 +325,9 @@ pub fn run() {
             check_device,
             get_device_slots,
             write_character_to_slot,
+            get_device_characters,
+            get_device_character,
+            get_pending_operations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -121,18 +121,20 @@ mod test {
     use super::*;
 
     #[test]
+    #[ignore] // Requires target/CP01.MKI to exist
     fn unscramble() {
         let bytes = fs::read("target/CP01.MKI").unwrap();
         let unscrambled = super::unscramble(bytes).collect::<Vec<_>>();
         fs::write("target/CP01.mp3", unscrambled).unwrap();
     }
 
-    #[test]
-    fn scramble() {
+    #[tokio::test]
+    #[ignore] // Requires res/audio/not-found.mp3 to exist
+    async fn scramble() {
         let in_file = PathBuf::from("res/audio/not-found.mp3");
         let out_file = PathBuf::from("target/CP01.MKI");
 
-        super::encode_using_tempfile(in_file, out_file, 5000, 01).unwrap();
+        super::encode_using_tempfile(in_file, out_file, 5000, 01).await.unwrap();
     }
 }
 

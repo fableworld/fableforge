@@ -35,6 +35,37 @@ export async function writeTracks(
 
 // --- Phase 3: Device management ---
 
+export interface DeviceCharacterDto {
+  id: number;
+  slotIndex: number;
+  status: string; // "writing" | "deleting" | "upgrading" | "ready"
+  characterId: string;
+  characterName: string;
+  description: string | null;
+  previewImageDataUrl: string | null;
+  previewImageUrl: string | null;
+  registryUrl: string | null;
+  registryName: string | null;
+  trackCount: number;
+  tracksJson: string | null;
+  nfcPayload: string | null;
+  deviceAddress: number | null;
+  writtenAt: string;
+  updatedAt: string;
+  contentHash: string | null;
+}
+
+export interface PendingOperationDto {
+  id: number;
+  slotIndex: number;
+  operation: string; // "write" | "delete" | "upgrade"
+  startedAt: string;
+  characterId: string | null;
+  registryUrl: string | null;
+  completedTracks: number;
+  totalTracks: number;
+}
+
 export const deviceService = {
   async checkDevice(): Promise<DeviceStatus> {
     return invoke<DeviceStatus>("check_device");
@@ -49,6 +80,22 @@ export const deviceService = {
     trackPaths: string[]
   ): Promise<void> {
     return invoke("write_character_to_slot", { slot, tracks: trackPaths });
+  },
+
+  async getDeviceCharacters(): Promise<DeviceCharacterDto[]> {
+    return invoke<DeviceCharacterDto[]>("get_device_characters");
+  },
+
+  async getDeviceCharacter(
+    slotIndex: number
+  ): Promise<DeviceCharacterDto | null> {
+    return invoke<DeviceCharacterDto | null>("get_device_character", {
+      slotIndex,
+    });
+  },
+
+  async getPendingOperations(): Promise<PendingOperationDto[]> {
+    return invoke<PendingOperationDto[]>("get_pending_operations");
   },
 
   onDeviceStatusChanged(callback: (status: DeviceStatus) => void) {
