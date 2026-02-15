@@ -503,7 +503,7 @@ body {
     var(--color-bg-sunken) 75%
   );
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  animation: skeleton-shimmer 2s ease-in-out infinite;
   border-radius: var(--radius-md);
 }
 
@@ -513,15 +513,33 @@ body {
 }
 
 /* --- Page Transitions --- */
-.page-enter {
+.page-transition-enter {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(10px) scale(0.98);
 }
 
-.page-enter-active {
+.page-transition-enter-active {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--transition-slow), transform var(--transition-slow);
+  transform: translateY(0) scale(1);
+  transition: opacity 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Global Interaction Polish --- */
+.btn {
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* --- Badges --- */
@@ -920,12 +938,13 @@ body {
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   overflow: hidden;
-  transition: all var(--transition-base);
+  transition: all var(--transition-base), border-color 0.4s ease;
 }
 
 .collection-card:hover {
-  border-color: var(--color-primary-300);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--color-primary-400);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--color-primary-400);
+  transform: translateY(-2px);
 }
 
 .collection-card__body {
@@ -1512,15 +1531,114 @@ textarea.dialog-input {
   color: var(--color-warning-500, #f59e0b);
 }
 
-/* --- Danger Button --- */
-.btn--danger {
-  background: var(--color-danger-500);
-  color: white;
-  border-color: var(--color-danger-500);
+/* --- Toast (Radix) --- */
+.toast-viewport {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: var(--space-2);
+  width: 360px;
+  max-width: 90vw;
+  margin: 0;
+  list-style: none;
+  z-index: 200;
+  outline: none;
 }
 
-.btn--danger:hover {
-  background: #dc2626;
-  border-color: #dc2626;
+.toast-root {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  overflow: hidden;
 }
+
+.toast-root[data-state='open'] {
+  animation: toast-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast-root[data-state='closed'] {
+  animation: toast-hide 200ms ease-in;
+}
+.toast-root[data-state='move'] {
+  transition: transform 200ms ease-out;
+}
+.toast-root[data-swipe='move'] {
+  transform: translateX(var(--radix-toast-swipe-move-x));
+}
+.toast-root[data-swipe='cancel'] {
+  transform: translateX(0);
+  transition: transform 200ms ease-out;
+}
+.toast-root[data-swipe='end'] {
+  animation: toast-swipe-out 100ms ease-out;
+}
+
+@keyframes toast-slide-in {
+  from { transform: translateX(calc(100% + var(--space-6))); }
+  to { transform: translateX(0); }
+}
+
+@keyframes toast-hide {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes toast-swipe-out {
+  from { transform: translateX(var(--radix-toast-swipe-end-x)); }
+  to { transform: translateX(calc(100% + var(--space-6))); }
+}
+
+.toast__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.toast__icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast__icon--success { color: var(--color-success-500); }
+.toast__icon--error { color: var(--color-danger-500); }
+.toast__icon--info { color: var(--color-primary-500); }
+
+.toast__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.toast__close-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.toast__close-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+}
+
+.toast-root--success { border-left: 4px solid var(--color-success-500); }
+.toast-root--error { border-left: 4px solid var(--color-danger-500); }
+.toast-root--info { border-left: 4px solid var(--color-primary-500); }
 

@@ -4,6 +4,7 @@ import { useSetAtom } from "jotai";
 import { Plus, ArrowLeft, Users, Trash2 } from "lucide-react";
 import { collectionsAtom } from "@/stores/collections";
 import { createEmptyCharacter } from "@/stores/collections";
+import { useToast } from "@/components/ToastProvider";
 import {
   getCollectionById,
   saveCollection,
@@ -19,6 +20,7 @@ export function EditorPage() {
   }>();
   const navigate = useNavigate();
   const setCollections = useSetAtom(collectionsAtom);
+  const { show: toast } = useToast();
 
   const [collection, setCollection] = useState<Collection | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(
@@ -59,6 +61,7 @@ export function EditorPage() {
     // Sync global state
     const all = await getCollections();
     setCollections(all);
+    toast("Character added", "success");
   };
 
   const handleDeleteCharacter = async (charId: string) => {
@@ -75,6 +78,7 @@ export function EditorPage() {
     }
     const all = await getCollections();
     setCollections(all);
+    toast("Character deleted", "success");
   };
 
   const handleSaveCharacter = async (character: Character) => {
@@ -90,6 +94,7 @@ export function EditorPage() {
     setCollection(updated);
     const all = await getCollections();
     setCollections(all);
+    toast("Character saved", "success");
   };
 
   if (!collectionId) {

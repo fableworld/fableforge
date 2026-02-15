@@ -13,6 +13,7 @@ import { charactersAtom } from "@/stores/registries";
 import { registryService } from "@/services/registry";
 import { deviceStatusAtom, writeProgressAtom } from "@/stores/device";
 import { deviceService } from "@/services/device";
+import { useToast } from "@/components/ToastProvider";
 import { SlotSelectionDialog } from "@/components/SlotSelectionDialog";
 import { WriteProgressDialog } from "@/components/WriteProgressDialog";
 import { OverwriteConfirmDialog } from "@/components/OverwriteConfirmDialog";
@@ -25,6 +26,7 @@ export function CharacterDetailPage() {
   const [characters] = useAtom(charactersAtom);
   const setCharacters = useSetAtom(charactersAtom);
   const [device] = useAtom(deviceStatusAtom);
+  const { show: toast } = useToast();
   const [character, setCharacter] = useState<Character | undefined>();
 
   // Write flow state
@@ -101,6 +103,7 @@ export function CharacterDetailPage() {
         .map((t) => t.url)
         .filter((url): url is string => url !== undefined);
       await deviceService.writeCharacterToSlot(slotIndex, trackPaths);
+      toast(`Successfully written to Slot ${slotIndex + 1}`, "success");
     } catch (err) {
       console.error("Write failed:", err);
       setProgress((p) => ({ ...p, status: "error" }));
