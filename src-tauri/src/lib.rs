@@ -179,6 +179,41 @@ async fn write_character_to_slot(
     writer::write_character(&app, &db_handle, &mountpoint, params).await
 }
 
+#[tauri::command]
+async fn process_and_save_image(
+    app: AppHandle,
+    src_path: String,
+    collection_id: String,
+    character_id: String,
+) -> Result<String, FabaError> {
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| FabaError::Communication)?;
+    
+    let dest_dir = app_data
+        .join("collections")
+        .join(&collection_id)
+        .join("previews");
+    std::fs::create_dir_all(&dest_dir).map_err(|_| FabaError::Communication)?;
+
+    let dest_filename = format!("{}.jpg", character_id);
+    let dest_path = dest_dir.join(&dest_filename);
+
+    // Open image
+    let img = image::open(&src_path).map_err(|e| FabaError::Custom(format!("Failed to open image: {}", e)))?;
+
+    // Resize to 400x400 (fill)
+    let resized = img.resize_to_fill(800, 800, image::imageops::FilterType::Lanczos3);
+
+    // Save as JPEG
+    resized
+        .save_with_format(&dest_path, image::ImageFormat::Jpeg)
+        .map_err(|e| FabaError::Custom(format!("Failed to save image: {}", e)))?;
+
+    Ok(dest_path.to_string_lossy().to_string())
+}
+
 // --- Slot Check Commands ---
 
 #[tauri::command]
@@ -445,6 +480,7 @@ pub fn run() {
             get_pending_operations,
             rollback_pending_operation,
             complete_pending_delete,
+            process_and_save_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

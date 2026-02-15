@@ -3,6 +3,7 @@ import {
   CharacterSchema,
   type Registry,
   type Character,
+  type Collection,
 } from "@/lib/schemas";
 import {
   addStoredRegistry,
@@ -10,6 +11,7 @@ import {
   removeStoredRegistry,
   getStoredRegistries,
   getStoredCharacters,
+  getCollections,
 } from "@/lib/store";
 
 export interface FetchRegistryResult {
@@ -110,7 +112,26 @@ export const registryService = {
    */
   async loadAll() {
     const registries = await getStoredRegistries();
-    const characters = await getStoredCharacters();
-    return { registries, characters };
+    const storedCharacters = await getStoredCharacters();
+    const collections = await getCollections();
+
+    // Collect all characters from local collections
+    const localCharacters: Character[] = collections.flatMap(
+      (col: Collection) => col.characters
+    );
+
+    // Merge and deduplicate by ID. Local characters take precedence.
+    const charMap = new Map<string, Character>();
+    for (const char of storedCharacters) {
+      charMap.set(char.id, char);
+    }
+    for (const char of localCharacters) {
+      charMap.set(char.id, char);
+    }
+
+    return {
+      registries,
+      characters: Array.from(charMap.values()),
+    };
   },
 };

@@ -21,7 +21,11 @@
       }
     ],
     "security": {
-      "csp": null
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**/.local/share/dev.d71.fableforge/**/*"]
+      },
+      "csp": "default-src 'self'; img-src 'self' asset: https: data: http://asset.localhost; connect-src 'self' asset: https:;"
     }
   },
   "bundle": {
