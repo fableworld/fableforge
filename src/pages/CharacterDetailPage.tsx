@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAtom, useSetAtom } from "jotai";
 import {
   ArrowLeft,
   Music,
   Box,
   ExternalLink,
-  ImageOff,
   Upload,
 } from "lucide-react";
 import { charactersAtom } from "@/stores/registries";
@@ -104,16 +104,19 @@ export function CharacterDetailPage() {
         <div className="character-detail">
           {/* Hero Image */}
           <div className="character-detail__hero">
-            {character.preview_image ? (
-              <img
-                src={character.preview_image}
-                alt={character.name}
-              />
-            ) : (
-              <div className="character-detail__hero-placeholder">
-                <ImageOff size={48} />
-              </div>
-            )}
+            <img
+              src={
+                character.preview_image
+                  ? character.preview_image.startsWith("/") || character.preview_image.includes(":") 
+                    ? character.preview_image.startsWith("/") ? convertFileSrc(character.preview_image) : character.preview_image
+                    : character.preview_image
+                  : "/logo.png"
+              }
+              alt={character.name}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/logo.png";
+              }}
+            />
           </div>
 
           {/* Name & Description */}

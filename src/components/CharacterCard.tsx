@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Music, ImageOff } from "lucide-react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { Music } from "lucide-react";
 import type { Character } from "@/lib/schemas";
 import styles from "./CharacterCard.module.css";
 
@@ -24,18 +25,21 @@ export function CharacterCard({ character }: CharacterCardProps) {
       }}
     >
       <div className={styles.imageWrapper}>
-        {character.preview_image ? (
-          <img
-            className={styles.image}
-            src={character.preview_image}
-            alt={character.name}
-            loading="lazy"
-          />
-        ) : (
-          <div className={styles.placeholder}>
-            <ImageOff size={32} />
-          </div>
-        )}
+        <img
+          className={styles.image}
+          src={
+            character.preview_image
+              ? character.preview_image.startsWith("/") || character.preview_image.includes(":") 
+                ? character.preview_image.startsWith("/") ? convertFileSrc(character.preview_image) : character.preview_image
+                : character.preview_image
+              : "/logo.png"
+          }
+          alt={character.name}
+          loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/logo.png";
+          }}
+        />
       </div>
       <div className={styles.info}>
         <div className={styles.name} title={character.name}>

@@ -30,6 +30,7 @@ tracing = "0.1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sha2 = "0.10"
 base64 = "0.22"
+image = "0.25"
 
 [features]
 default = ["custom-protocol"]
