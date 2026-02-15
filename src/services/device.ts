@@ -9,6 +9,30 @@ export interface SlotDto {
   exists: boolean;
 }
 
+export interface DeviceStatus {
+  connected: boolean;
+  mountpoint?: string;
+}
+
+interface DeviceStatusDto {
+  connected: boolean;
+  mountpoint: string | null;
+}
+
+export interface WriteProgress {
+  current: number;
+  total: number;
+  trackName: string;
+  status: "idle" | "encoding" | "writing" | "done" | "error";
+}
+
+interface WriteProgressDto {
+  current: number;
+  total: number;
+  track_name: string;
+  status: string;
+}
+
 export interface TrackDto {
   trackNumber: number;
 }
@@ -132,7 +156,7 @@ export const deviceService = {
   },
 
   async deleteDeviceCharacter(slotIndex: number): Promise<void> {
-    return invoke("delete_device_character", { slotIndex });
+    await invoke("delete_device_character", { slotIndex });
   },
 
   async getDeviceCharacters(): Promise<DeviceCharacterDto[]> {
@@ -147,19 +171,46 @@ export const deviceService = {
     });
   },
 
-  async getPendingOperations(): Promise<PendingOperationDto[]> {
-    return invoke<PendingOperationDto[]>("get_pending_operations");
+  async getPendingOperations(): Promise<PendingOperation[]> {
+    return invoke<PendingOperation[]>("get_pending_operations");
+  },
+
+  async rollbackPendingOperation(opId: number, slotIndex: number): Promise<void> {
+    await invoke("rollback_pending_operation", { opId, slotIndex });
+  },
+
+  async completePendingDelete(opId: number, slotIndex: number): Promise<void> {
+    await invoke("complete_pending_delete", { opId, slotIndex });
   },
 
   onDeviceStatusChanged(callback: (status: DeviceStatus) => void) {
-    return listen<DeviceStatus>("device-status-changed", (event) => {
-      callback(event.payload);
+    return listen<DeviceStatusDto>("device-status-changed", (event) => {
+      callback({
+        connected: event.payload.connected,
+        mountpoint: event.payload.mountpoint || undefined,
+      });
     });
   },
 
   onWriteProgress(callback: (progress: WriteProgress) => void) {
-    return listen<WriteProgress>("write-progress", (event) => {
-      callback(event.payload);
+    return listen<WriteProgressDto>("write-progress", (event) => {
+      callback({
+        current: event.payload.current,
+        total: event.payload.total,
+        trackName: event.payload.track_name,
+        status: event.payload.status as any,
+      });
     });
   },
 };
+
+export interface PendingOperation {
+  id: number;
+  slotIndex: number;
+  operation: "write" | "delete" | "upgrade";
+  startedAt: string;
+  characterId?: string;
+  registryUrl?: string;
+  completedTracks: number;
+  totalTracks: number;
+}

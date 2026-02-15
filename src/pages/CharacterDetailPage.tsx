@@ -12,7 +12,6 @@ import {
 import { charactersAtom } from "@/stores/registries";
 import { registryService } from "@/services/registry";
 import { deviceStatusAtom } from "@/stores/device";
-import { deviceStatusAtom } from "@/stores/device";
 import { WriteFlowOrchestrator } from "@/components/WriteFlowOrchestrator";
 import type { Character } from "@/lib/schemas";
 

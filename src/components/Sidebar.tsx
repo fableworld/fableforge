@@ -7,6 +7,7 @@ import {
   Pencil,
   Settings,
   Usb,
+  Smartphone,
   Moon,
   Sun,
 } from "lucide-react";
@@ -61,6 +62,15 @@ export function Sidebar() {
         >
           <FolderOpen className="sidebar__link-icon" />
           Collections
+        </NavLink>
+        <NavLink
+          to="/device"
+          className={({ isActive }) =>
+            `sidebar__link ${isActive ? "sidebar__link--active" : ""}`
+          }
+        >
+          <Smartphone className="sidebar__link-icon" />
+          Device
         </NavLink>
         <NavLink
           to="/editor"

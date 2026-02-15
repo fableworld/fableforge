@@ -8,6 +8,7 @@ import { CollectionsPage } from "@/pages/CollectionsPage";
 import { EditorPage } from "@/pages/EditorPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { CharacterDetailPage } from "@/pages/CharacterDetailPage";
+import { DeviceInventoryPage } from "@/pages/DeviceInventoryPage";
 
 import { ToastProvider } from "@/components/ToastProvider";
 
@@ -30,6 +31,7 @@ export function App() {
             <Route path="/editor/:collectionId" element={<EditorPage />} />
             <Route path="/editor/:collectionId/:characterId" element={<EditorPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/device" element={<DeviceInventoryPage />} />
             <Route path="/character/:id" element={<CharacterDetailPage />} />
           </Routes>
         </main>

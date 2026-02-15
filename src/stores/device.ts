@@ -8,6 +8,7 @@ export interface DeviceStatus {
 export interface SlotInfo {
   index: number;
   name: string;
+  characterName?: string;
   trackCount: number;
   exists: boolean;
 }

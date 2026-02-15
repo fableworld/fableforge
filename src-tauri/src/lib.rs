@@ -4,12 +4,11 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::core::error::FabaError;
-use crate::db::device_db;
 use crate::db::device_db::{
     CharacterStatus, InsertCharacterParams, InsertPendingOpParams, PendingOperation,
 };
-use crate::device::integrity::{self, SlotCheckResult};
-use crate::device::writer::{self, WriteCharacterParams, DbHandle};
+use crate::device::{integrity, writer, recovery};
+use crate::device::writer::WriteCharacterParams;
 use crate::dto::device_management::{DeviceCharacterDto, PendingOperationDto};
 use crate::dto::fababox::{DeviceStatusDto, SlotDto, TrackDto, NewTrackDto};
 use crate::faba::FabaBox;
@@ -23,7 +22,7 @@ mod db;
 mod device;
 
 type FabaState = Arc<Mutex<Option<FabaBox>>>;
-type DeviceDbState = DbHandle; // Arc<Mutex<Option<Connection>>>
+type DeviceDbState = Arc<Mutex<Option<rusqlite::Connection>>>; // Arc<Mutex<Option<Connection>>>
 
 #[tauri::command]
 fn load_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaError> {
@@ -163,7 +162,7 @@ async fn write_character_to_slot(
     };
 
     let nfc_payload = format!("K5{:03}", slot);
-    let db_handle: DbHandle = db_state.inner().clone();
+    let db_handle: DeviceDbState = db_state.inner().clone();
 
     let params = WriteCharacterParams {
         slot_index: slot,
@@ -192,7 +191,7 @@ fn check_slot_status(
     registry_url: String,
     character_id: String,
     content_hash: Option<String>,
-) -> Result<SlotCheckResult, FabaError> {
+) -> Result<integrity::SlotCheckResult, FabaError> {
     let mountpoint = {
         let guard = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
         let Some(ref faba) = *guard else {
@@ -281,15 +280,56 @@ fn get_device_character(
 }
 
 #[tauri::command]
-fn get_pending_operations(
-    db_state: State<DeviceDbState>,
+async fn get_pending_operations(
+    db_state: State<'_, DeviceDbState>,
 ) -> Result<Vec<PendingOperationDto>, FabaError> {
+    let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref conn) = *guard else {
+        return Ok(Vec::new());
+    };
+
+    let ops = recovery::check_pending_operations(conn)?;
+    Ok(ops.into_iter().map(PendingOperationDto::from).collect())
+}
+
+#[tauri::command]
+async fn rollback_pending_operation(
+    db_state: State<'_, DeviceDbState>,
+    maybe_faba: State<'_, FabaState>,
+    op_id: i64,
+    slot_index: usize,
+) -> Result<(), FabaError> {
+    let mountpoint = {
+        let faba = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+        faba.as_ref().ok_or(FabaError::NotDetected)?.mountpoint.clone()
+    };
+
     let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
     let Some(ref conn) = *guard else {
         return Err(FabaError::NotDetected);
     };
-    let ops = device_db::get_all_pending_ops(conn)?;
-    Ok(ops.into_iter().map(PendingOperationDto::from).collect())
+
+    recovery::rollback_operation(conn, &mountpoint, op_id, slot_index)
+}
+
+#[tauri::command]
+async fn complete_pending_delete(
+    db_state: State<'_, DeviceDbState>,
+    maybe_faba: State<'_, FabaState>,
+    op_id: i64,
+    slot_index: usize,
+) -> Result<(), FabaError> {
+    let mountpoint = {
+        let faba = maybe_faba.lock().map_err(|_| FabaError::Communication)?;
+        faba.as_ref().ok_or(FabaError::NotDetected)?.mountpoint.clone()
+    };
+
+    let guard = db_state.lock().map_err(|_| FabaError::Communication)?;
+    let Some(ref conn) = *guard else {
+        return Err(FabaError::NotDetected);
+    };
+
+    recovery::complete_delete(conn, &mountpoint, op_id, slot_index)
 }
 
 // --- Helpers ---
@@ -405,6 +445,8 @@ pub fn run() {
             get_device_characters,
             get_device_character,
             get_pending_operations,
+            rollback_pending_operation,
+            complete_pending_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
