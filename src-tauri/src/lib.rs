@@ -178,7 +178,7 @@ async fn write_character_to_slot(
         None
     };
 
-    let nfc_payload = format!("K5{:03}", slot);
+    let nfc_payload = format!("021905305{:03}00", slot);
     let db_handle: DeviceDbState = db_state.inner().clone();
 
     let params = WriteCharacterParams {

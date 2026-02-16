@@ -80,7 +80,7 @@ The app allows users to **discover, create, manage, and write** audio character 
    - **2.3 Slot occupied by different character:** Ask confirmation to overwrite (showing both characters), or choose a different slot.
    - **2.4 Inconsistency** (DB empty but files present from manual upload or older FableForge): Fail with descriptive error, ask user to clean slot manually.
 3. **Write execution:** Two-phase commit with progress feedback.
-4. **Post-write:** Show QR code for NFC tag writing (`fableforge-nfcwrite://K5XXX`).
+4. **Post-write:** Show QR code for NFC tag writing (`https://openfable.d71.dev/nfc-write?payl=K5XXX`).
 - User can **cancel** at any point during the flow.
 
 - **MKI encoding:** Preserve the existing MKI scrambling/encoding engine (rainbow-table based) exactly as-is.
@@ -205,7 +205,7 @@ The application adopts and extends OpenFable's registry JSON schema:
    - Different character → confirm overwrite or choose another slot.
    - Inconsistency → error message, manual cleanup needed.
 8. Two-phase commit write with per-track progress bar.
-9. Success → show QR code (`fableforge-nfcwrite://K5XXX`) for NFC tag writing.
+9. Success → show QR code (`https://openfable.d71.dev/nfc-write?payl=K5XXX`) for NFC tag writing.
 
 ### 5.5 Device Management
 
@@ -249,7 +249,7 @@ The application adopts and extends OpenFable's registry JSON schema:
 ## 7. Future Roadmap
 
 - **Deep link protocol:** `fableforge://write?character=uuid&registry=url` — receive write requests from OpenFable PWA.
-- **OpenFable NFC integration:** QR code scanning in OpenFable to write NFC tags directly from `fableforge-nfcwrite://K5XXX`.
+- **OpenFable NFC integration:** QR code scanning in OpenFable to write NFC tags directly from `https://openfable.d71.dev/nfc-write?payl=K5XXX`.
 - **Multi-device management:** Support multiple FABA devices simultaneously.
 - **Audio editor:** Basic trim/normalize built into the app.
 - **Collection marketplace/discovery:** Curated list of community registries.

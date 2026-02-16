@@ -29,7 +29,7 @@ export function WriteProgressDialog({
   const isWriting = progress.status === "writing";
 
   // The URI scheme for FableForge NFC Write
-  const nfcUri = nfcPayload ? `fableforge-nfcwrite://${nfcPayload}` : undefined;
+  const nfcUri = nfcPayload ? `https://openfable.d71.dev/nfc-write?payl=${nfcPayload}` : undefined;
 
   return (
     <Dialog.Root open={open} onOpenChange={isDone || isError ? onOpenChange : undefined}>
