@@ -76,4 +76,4 @@ pnpm tauri build
 
 ## 📄 License
 
-TBD
+Distributed under the GNU GPL v3 License. See [LICENSE](LICENSE) for more information.
