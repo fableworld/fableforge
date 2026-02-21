@@ -1,0 +1,72 @@
+name: 'publish'
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest' # for out-of-the-box Apple Silicon support
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-22.04' # for Linux builds
+            args: ''
+          - platform: 'windows-latest' # for Windows builds
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: install frontend dependencies
+        run: pnpm install
+
+      - name: extract release notes
+        id: extract_release_notes
+        shell: bash
+        run: |
+          chmod +x scripts/extract-changelog.sh
+          VERSION="${{ github.ref_name }}"
+          # Get everything after the first 'v'
+          VERSION_CLEAN=${VERSION#v}
+          ./scripts/extract-changelog.sh "$VERSION_CLEAN" > release_notes.md
+          echo "RELEASE_NOTES_PATH=release_notes.md" >> $GITHUB_OUTPUT
+
+      - name: build and publish
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'FableForge v__VERSION__' # tauri-action replaces __VERSION__ automatically if needed, but we use the tag
+          releaseBodyPath: release_notes.md
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
