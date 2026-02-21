@@ -1,0 +1,19 @@
+[vcs]
+software = "Git"
+
+[vcs.strict]
+mainline = "main"
+
+[modules.root]
+main = true
+path = "."
+packageManager = "Npm"
+
+
+[modules.tauri]
+path = "src-tauri"
+packageManager = "Cargo"
+
+[modules.root.hooks.after_rel]
+build = ["pnpm", "run", "build"]
+test = ["pnpm", "run", "test"]
