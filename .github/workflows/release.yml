@@ -6,7 +6,8 @@ on:
       - '*.*.*'
 
 jobs:
-  publish:
+  publish-tauri:
+    permissions: write-all
     strategy:
       fail-fast: false
       matrix:
@@ -57,18 +58,19 @@ jobs:
           ./scripts/extract-changelog.sh "$VERSION_CLEAN" > release_notes.md
           echo "RELEASE_NOTES_PATH=release_notes.md" >> $GITHUB_OUTPUT
 
-      - name: build and publish
-        uses: tauri-apps/tauri-action@v0
+      - name: build tauri app
+        uses: tauri-apps/tauri-action@v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: create release and upload assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: build-${{ matrix.platform }}-${{ matrix.target || 'default' }}
-          path: |
+          tag_name: ${{ github.ref_name }}
+          files: |
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.AppImage
@@ -76,4 +78,8 @@ jobs:
             src-tauri/target/release/bundle/**/*.deb
             src-tauri/target/*/release/bundle/**/*.dmg
             src-tauri/target/*/release/bundle/**/*.app
-          if-no-files-found: warn
+          draft: true
+          prerelease: false
+          body_path: release_notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.TAURI_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
