@@ -47,6 +47,14 @@ jobs:
       - name: install frontend dependencies
         run: pnpm install
 
+      - name: diagnostic - check token permissions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking token permissions..."
+          gh auth status
+          gh api /rate_limit
+
       - name: extract release notes
         id: extract_release_notes
         shell: bash
@@ -61,7 +69,7 @@ jobs:
       - name: build and publish
         uses: tauri-apps/tauri-action@v0.6.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TAURI_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         with:
           tagName: __VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: 'FableForge v__VERSION__'
