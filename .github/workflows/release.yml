@@ -47,14 +47,6 @@ jobs:
       - name: install frontend dependencies
         run: pnpm install
 
-      - name: diagnostic - check token permissions
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Checking token permissions..."
-          gh auth status
-          gh api /rate_limit
-
       - name: extract release notes
         id: extract_release_notes
         shell: bash
@@ -66,14 +58,28 @@ jobs:
           ./scripts/extract-changelog.sh "$VERSION_CLEAN" > release_notes.md
           echo "RELEASE_NOTES_PATH=release_notes.md" >> $GITHUB_OUTPUT
 
-      - name: build and publish
+      - name: build tauri app
         uses: tauri-apps/tauri-action@v0.6.1
         env:
-          GITHUB_TOKEN: ${{ secrets.TAURI_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: __VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: 'FableForge v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }}
+
+      - name: create release and upload assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.rpm
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/*/release/bundle/**/*.dmg
+            src-tauri/target/*/release/bundle/**/*.app
+          draft: true
+          prerelease: false
+          body_path: release_notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.TAURI_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
