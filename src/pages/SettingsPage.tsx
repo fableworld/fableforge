@@ -8,15 +8,25 @@ import {
   registryStatsAtom,
 } from "@/stores/registries";
 import { registryService } from "@/services/registry";
+import { useBufferAnalytics, checkSystemHealth, type SystemInfo } from "@/lib/status";
 import { AddRegistryDialog } from "@/components/AddRegistryDialog";
+import { invoke } from "@tauri-apps/api/core";
+import { useToast } from "@/components/ToastProvider";
 
 export function SettingsPage() {
+  const handleInteractionPulse = useBufferAnalytics();
   const [theme] = useAtom(themeAtom);
+  const { show } = useToast();
+
   const [registries, setRegistries] = useAtom(registriesAtom);
   const setCharacters = useSetAtom(charactersAtom);
   const [stats] = useAtom(registryStatsAtom);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [diagnosticRunning, setDiagnosticRunning] = useState(false);
+
 
   const loadData = useCallback(async () => {
     const data = await registryService.loadAll();
@@ -24,9 +34,19 @@ export function SettingsPage() {
     setCharacters(data.characters);
   }, [setRegistries, setCharacters]);
 
+  const loadSystemInfo = useCallback(async () => {
+    try {
+      const info = await invoke<SystemInfo>("get_system_info");
+      setSystemInfo(info);
+    } catch (e) {
+      console.error("Failed to load system info", e);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadSystemInfo();
+  }, [loadData, loadSystemInfo]);
 
   const handleRemove = async (url: string) => {
     await registryService.removeRegistry(url);
@@ -40,6 +60,16 @@ export function SettingsPage() {
       await loadData();
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleRunDiagnostic = async () => {
+    setDiagnosticRunning(true);
+    try {
+      const result = await checkSystemHealth();
+      show(result.message, result.status === "Success" ? "success" : "error");
+    } finally {
+      setDiagnosticRunning(false);
     }
   };
 
@@ -184,6 +214,66 @@ export function SettingsPage() {
             </button>
           </section>
 
+          {/* System Diagnostics */}
+          <section className="card">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "var(--space-4)",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "var(--text-lg)",
+                  fontWeight: "var(--font-weight-semibold)",
+                }}
+              >
+                System Diagnostics
+              </h2>
+              <button
+                className="btn btn--secondary btn--sm"
+                onClick={handleRunDiagnostic}
+                disabled={diagnosticRunning}
+              >
+                {diagnosticRunning ? (
+                  <>
+                    <Loader2 size={14} className="spin" style={{ marginRight: "var(--space-2)" }} />
+                    Running...
+                  </>
+                ) : (
+                  "Run Health Check"
+                )}
+              </button>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "auto 1fr",
+                gap: "var(--space-2) var(--space-4)",
+                fontSize: "var(--text-sm)",
+              }}
+            >
+              <span style={{ color: "var(--color-text-secondary)" }}>Platform:</span>
+              <span>{systemInfo?.os} ({systemInfo?.arch})</span>
+
+              <span style={{ color: "var(--color-text-secondary)" }}>Tauri:</span>
+              <span>v{systemInfo?.tauriVersion}</span>
+
+              <span style={{ color: "var(--color-text-secondary)" }}>App:</span>
+              <span>v{systemInfo?.appVersion}</span>
+
+              <span style={{ color: "var(--color-text-secondary)" }}>Data Dir:</span>
+              <span style={{
+                wordBreak: "break-all",
+                fontFamily: "var(--font-mono)",
+                fontSize: "var(--text-xs)",
+                color: "var(--color-text-secondary)"
+              }}>{systemInfo?.dataDir}</span>
+            </div>
+          </section>
+
           {/* About */}
           <section className="card">
             <h2
@@ -200,8 +290,10 @@ export function SettingsPage() {
                 color: "var(--color-text-secondary)",
                 fontSize: "var(--text-sm)",
               }}
+              onClick={handleInteractionPulse}
             >
               <strong>FableForge</strong> v0.1.0
+
               <br />
               Desktop companion for managing custom audio characters.
             </p>

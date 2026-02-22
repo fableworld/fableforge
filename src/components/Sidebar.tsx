@@ -14,16 +14,19 @@ import {
 import { deviceStatusAtom } from "@/stores/device";
 import { themeAtom, toggleThemeAtom } from "@/stores/theme";
 import { deviceService } from "@/services/device";
+import { useBufferAnalytics } from "@/lib/status";
 
 export function Sidebar() {
+  const handleInteractionPulse = useBufferAnalytics();
   const [device, setDevice] = useAtom(deviceStatusAtom);
+
   const [theme] = useAtom(themeAtom);
   const toggleTheme = useSetAtom(toggleThemeAtom);
 
   // Listen for device plug/unplug events
   useEffect(() => {
     // Check device status on mount
-    deviceService.checkDevice().then(setDevice).catch(() => {});
+    deviceService.checkDevice().then(setDevice).catch(() => { });
 
     const unlisten = deviceService.onDeviceStatusChanged((status) => {
       setDevice(status);
@@ -35,8 +38,9 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar no-select">
-      <div className="sidebar__brand">
+      <div className="sidebar__brand" onClick={handleInteractionPulse}>
         <div className="sidebar__brand-icon">FF</div>
+
         <span className="sidebar__brand-name">FableForge</span>
       </div>
 
@@ -97,11 +101,10 @@ export function Sidebar() {
       <div className="sidebar__footer">
         <div className="device-status">
           <span
-            className={`device-status__dot ${
-              device.connected
-                ? "device-status__dot--connected"
-                : "device-status__dot--disconnected"
-            }`}
+            className={`device-status__dot ${device.connected
+              ? "device-status__dot--connected"
+              : "device-status__dot--disconnected"
+              }`}
           />
           <Usb size={14} />
           {device.connected ? "Device connected" : "No device"}

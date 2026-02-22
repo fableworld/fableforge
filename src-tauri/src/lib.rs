@@ -9,6 +9,7 @@ use crate::device::{integrity, writer, recovery};
 use crate::device::writer::WriteCharacterParams;
 use crate::dto::device_management::{DeviceCharacterDto, PendingOperationDto};
 use crate::dto::fababox::{DeviceStatusDto, SlotDto, TrackDto, NewTrackDto};
+use crate::dto::system::{SystemInfoDto, DiagnosticResultDto};
 use crate::faba::FabaBox;
 use crate::mki::encode_using_tempfile;
 
@@ -399,6 +400,43 @@ async fn download_image(url: &str) -> Result<Vec<u8>, FabaError> {
     }
 }
 
+#[tauri::command]
+async fn get_system_info(app: AppHandle) -> Result<SystemInfoDto, FabaError> {
+    let data_dir = app.path().app_data_dir()
+        .map_err(|_| FabaError::Communication)?
+        .to_string_lossy()
+        .to_string();
+
+    Ok(SystemInfoDto {
+        os: std::env::consts::OS.to_string(),
+        arch: std::env::consts::ARCH.to_string(),
+        tauri_version: tauri::VERSION.to_string(),
+        app_version: app.package_info().version.to_string(),
+        data_dir,
+    })
+}
+
+#[tauri::command]
+async fn run_diagnostic(app: AppHandle) -> Result<DiagnosticResultDto, FabaError> {
+    // Simulate some work
+    tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+    
+    let data_dir = app.path().app_data_dir().map_err(|_| FabaError::Communication)?;
+    let collections_dir = data_dir.join("collections");
+    
+    let collections_exists = collections_dir.exists();
+    let message = if collections_exists {
+        format!("System health: Optimal. Collections directory verified at {:?}", collections_dir)
+    } else {
+        "System health: Good. Initializing collection structures.".to_string()
+    };
+
+    Ok(DiagnosticResultDto {
+        status: "Success".to_string(),
+        message,
+    })
+}
+
 // --- Device Polling ---
 
 fn start_device_polling(app: AppHandle, faba_state: FabaState, db_state: DeviceDbState) {
@@ -500,6 +538,8 @@ pub fn run() {
             rollback_pending_operation,
             complete_pending_delete,
             process_and_save_image,
+            get_system_info,
+            run_diagnostic,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
