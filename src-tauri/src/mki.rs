@@ -121,6 +121,18 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_scramble_unscramble_bytes() {
+        // Create a test payload with all possible byte values
+        let original_data: Vec<u8> = (0..=255).cycle().take(1024).collect();
+        
+        let scrambled: Vec<u8> = super::scramble(&original_data).collect();
+        assert_ne!(original_data, scrambled, "Scrambled data should differ from original");
+        
+        let unscrambled: Vec<u8> = super::unscramble(&scrambled).collect();
+        assert_eq!(original_data, unscrambled, "Unscrambled data should match original");
+    }
+
+    #[test]
     #[ignore] // Requires target/CP01.MKI to exist
     fn unscramble() {
         let bytes = fs::read("target/CP01.MKI").unwrap();
@@ -137,4 +149,3 @@ mod test {
         super::encode_using_tempfile(in_file, out_file, 5000, 01).await.unwrap();
     }
 }
-

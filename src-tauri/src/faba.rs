@@ -168,3 +168,30 @@ pub struct FabaSlot {
 pub struct Track {
     pub index: usize,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_track_filename_regex() {
+        assert!(TRACK_FILENAME_REGEX.is_match("CP01.MKI"));
+        assert!(TRACK_FILENAME_REGEX.is_match("CP99.MKI"));
+        assert!(!TRACK_FILENAME_REGEX.is_match("CP100.MKI"));
+        assert!(!TRACK_FILENAME_REGEX.is_match("CP01.mp3"));
+        assert!(!TRACK_FILENAME_REGEX.is_match("invalid"));
+
+        let caps = TRACK_FILENAME_REGEX.captures("CP05.MKI").unwrap();
+        assert_eq!(&caps[1], "05");
+    }
+
+    #[test]
+    fn test_build_collection_dir() {
+        let faba = FabaBox {
+            mountpoint: PathBuf::from("/mnt/faba")
+        };
+        assert_eq!(faba.build_collection_dir(1), PathBuf::from("/mnt/faba/MKI01/K5001"));
+        assert_eq!(faba.build_collection_dir(99), PathBuf::from("/mnt/faba/MKI01/K5099"));
+        assert_eq!(faba.build_collection_dir(500), PathBuf::from("/mnt/faba/MKI01/K5500"));
+    }
+}
