@@ -1,6 +1,6 @@
 [package]
 name = "fableforge"
-version = "0.1.0"
+version = "0.1.1"
 description = "Desktop companion app for managing custom audio content on FABA-compatible music players"
 authors = ["d71"]
 license = "GPL-3.0"
