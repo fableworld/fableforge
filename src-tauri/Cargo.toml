@@ -31,6 +31,12 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 sha2 = "0.10"
 base64 = "0.22"
 image = "0.25"
+aws-sdk-s3 = "1"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-types = "1"
+aws-credential-types = "1"
+keyring = { version = "3", features = ["linux-native"] }
+uuid = { version = "1", features = ["v4"] }
 
 [features]
 default = ["custom-protocol"]

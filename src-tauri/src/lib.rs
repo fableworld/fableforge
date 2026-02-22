@@ -10,6 +10,7 @@ use crate::device::writer::WriteCharacterParams;
 use crate::dto::device_management::{DeviceCharacterDto, PendingOperationDto};
 use crate::dto::fababox::{DeviceStatusDto, SlotDto, TrackDto, NewTrackDto};
 use crate::dto::system::{SystemInfoDto, DiagnosticResultDto};
+use crate::dto::s3::{S3ConfigDto, S3ConnectionResultDto};
 use crate::faba::FabaBox;
 use crate::mki::encode_using_tempfile;
 
@@ -19,6 +20,7 @@ mod core;
 mod dto;
 mod db;
 mod device;
+mod s3;
 
 type FabaState = Arc<Mutex<Option<FabaBox>>>;
 type DeviceDbState = Arc<Mutex<Option<rusqlite::Connection>>>; // Arc<Mutex<Option<Connection>>>
@@ -437,6 +439,134 @@ async fn run_diagnostic(app: AppHandle) -> Result<DiagnosticResultDto, FabaError
     })
 }
 
+// --- S3 Commands ---
+
+#[tauri::command]
+async fn s3_save_config(app: AppHandle, config: S3ConfigDto) -> Result<(), FabaError> {
+    use tauri_plugin_store::StoreExt;
+    let store = app.store("fableforge-data.json")
+        .map_err(|e| FabaError::S3(format!("Failed to open store: {}", e)))?;
+
+    let mut configs: Vec<S3ConfigDto> = store
+        .get("s3_configs")
+        .and_then(|v| serde_json::from_value(v).ok())
+        .unwrap_or_default();
+
+    // Upsert by config ID
+    if let Some(idx) = configs.iter().position(|c| c.id == config.id) {
+        configs[idx] = config;
+    } else {
+        configs.push(config);
+    }
+
+    store.set("s3_configs", serde_json::to_value(&configs)
+        .map_err(|e| FabaError::S3(format!("Serialization error: {}", e)))?);
+    store.save()
+        .map_err(|e| FabaError::S3(format!("Failed to save store: {}", e)))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn s3_get_configs(app: AppHandle) -> Result<Vec<S3ConfigDto>, FabaError> {
+    use tauri_plugin_store::StoreExt;
+    let store = app.store("fableforge-data.json")
+        .map_err(|e| FabaError::S3(format!("Failed to open store: {}", e)))?;
+
+    let configs: Vec<S3ConfigDto> = store
+        .get("s3_configs")
+        .and_then(|v| serde_json::from_value(v).ok())
+        .unwrap_or_default();
+
+    Ok(configs)
+}
+
+#[tauri::command]
+async fn s3_delete_config(app: AppHandle, config_id: String) -> Result<(), FabaError> {
+    use tauri_plugin_store::StoreExt;
+
+    // Delete credentials from keyring
+    s3::credentials::delete_credentials(&config_id)?;
+
+    // Remove from store
+    let store = app.store("fableforge-data.json")
+        .map_err(|e| FabaError::S3(format!("Failed to open store: {}", e)))?;
+
+    let mut configs: Vec<S3ConfigDto> = store
+        .get("s3_configs")
+        .and_then(|v| serde_json::from_value(v).ok())
+        .unwrap_or_default();
+
+    configs.retain(|c| c.id != config_id);
+
+    store.set("s3_configs", serde_json::to_value(&configs)
+        .map_err(|e| FabaError::S3(format!("Serialization error: {}", e)))?);
+    store.save()
+        .map_err(|e| FabaError::S3(format!("Failed to save store: {}", e)))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn s3_store_credentials(
+    config_id: String,
+    access_key: String,
+    secret_key: String,
+) -> Result<(), FabaError> {
+    s3::credentials::store_credentials(&config_id, &access_key, &secret_key)
+}
+
+#[tauri::command]
+async fn s3_test_connection(app: AppHandle, config_id: String) -> Result<S3ConnectionResultDto, FabaError> {
+    use tauri_plugin_store::StoreExt;
+
+    // Load the config
+    let store = app.store("fableforge-data.json")
+        .map_err(|e| FabaError::S3(format!("Failed to open store: {}", e)))?;
+
+    let configs: Vec<S3ConfigDto> = store
+        .get("s3_configs")
+        .and_then(|v| serde_json::from_value(v).ok())
+        .unwrap_or_default();
+
+    let config_dto = configs
+        .into_iter()
+        .find(|c| c.id == config_id)
+        .ok_or_else(|| FabaError::S3("S3 config not found".into()))?;
+
+    let config: s3::config::S3Config = config_dto.into();
+
+    // Load credentials from keyring
+    let (access_key, secret_key) = s3::credentials::get_credentials(&config_id)?;
+
+    // Build client and test
+    let client = s3::client::build_client(&config, &access_key, &secret_key)?;
+    let info = s3::client::test_connection(&client, &config).await;
+
+    Ok(info.into())
+}
+
+#[tauri::command]
+async fn s3_get_public_url(app: AppHandle, config_id: String) -> Result<Option<String>, FabaError> {
+    use tauri_plugin_store::StoreExt;
+
+    let store = app.store("fableforge-data.json")
+        .map_err(|e| FabaError::S3(format!("Failed to open store: {}", e)))?;
+
+    let configs: Vec<S3ConfigDto> = store
+        .get("s3_configs")
+        .and_then(|v| serde_json::from_value(v).ok())
+        .unwrap_or_default();
+
+    let config_dto = configs
+        .into_iter()
+        .find(|c| c.id == config_id)
+        .ok_or_else(|| FabaError::S3("S3 config not found".into()))?;
+
+    let config: s3::config::S3Config = config_dto.into();
+    Ok(config.public_index_url())
+}
+
 // --- Device Polling ---
 
 fn start_device_polling(app: AppHandle, faba_state: FabaState, db_state: DeviceDbState) {
@@ -540,6 +670,12 @@ pub fn run() {
             process_and_save_image,
             get_system_info,
             run_diagnostic,
+            s3_save_config,
+            s3_get_configs,
+            s3_delete_config,
+            s3_test_connection,
+            s3_store_credentials,
+            s3_get_public_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
