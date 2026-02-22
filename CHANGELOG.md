@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Conflict detection engine (synced/pending_upload/pending_download/conflict states).
 - 4 new sync Tauri commands (upload, download, get status, resolve conflict).
 - Frontend sync service layer with TypeScript types for sync metadata and results.
+- Sync status badges in editor sidebar (synced ✓, pending upload ↑, pending download ↓, conflict ⚠).
+- Upload/Download action buttons per character in the editor.
+- Conflict resolution banner with "Keep Local" / "Use Remote" actions.
+- S3 Sync indicator badge in editor header when collection has linked S3 config.
 
 ## [0.1.1] 2026-02-22
 
