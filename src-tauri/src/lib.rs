@@ -748,6 +748,40 @@ fn save_sync_metadata(
     Ok(())
 }
 
+#[tauri::command]
+async fn s3_sync_all(
+    app: AppHandle,
+    instance_id: State<'_, InstanceId>,
+    config_id: String,
+    characters: Vec<CharacterSyncInputDto>,
+    collection_name: String,
+    collection_description: Option<String>,
+) -> Result<Vec<SyncResultDto>, FabaError> {
+    let mut results = Vec::new();
+    for character in characters {
+        let char_id = character.id.clone();
+        match s3_sync_upload(
+            app.clone(),
+            instance_id.clone(),
+            config_id.clone(),
+            character,
+            collection_name.clone(),
+            collection_description.clone(),
+        ).await {
+            Ok(result) => results.push(result),
+            Err(e) => {
+                results.push(SyncResultDto {
+                    character_id: char_id,
+                    success: false,
+                    status: "error".into(),
+                    message: Some(format!("{}", e)),
+                });
+            }
+        }
+    }
+    Ok(results)
+}
+
 // --- Device Polling ---
 
 fn start_device_polling(app: AppHandle, faba_state: FabaState, db_state: DeviceDbState) {
@@ -864,6 +898,7 @@ pub fn run() {
             s3_sync_download,
             s3_get_sync_status,
             s3_resolve_conflict,
+            s3_sync_all,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

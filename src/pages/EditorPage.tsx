@@ -47,6 +47,7 @@ export function EditorPage() {
   const [s3Config, setS3Config] = useState<S3Config | null>(null);
   const [syncStatuses, setSyncStatuses] = useState<Map<string, SyncMetadata>>(new Map());
   const [syncingCharId, setSyncingCharId] = useState<string | null>(null);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
 
   const loadCollection = useCallback(async () => {
     if (!collectionId) return;
@@ -83,6 +84,15 @@ export function EditorPage() {
     loadCollection();
     loadS3Config();
   }, [loadCollection, loadS3Config]);
+
+  // Auto-sync: refresh sync statuses periodically (every 60 seconds)
+  useEffect(() => {
+    if (!s3Config) return;
+    const interval = setInterval(() => {
+      loadS3Config();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [s3Config, loadS3Config]);
 
   const selectedChar = collection?.characters.find(
     (c) => c.id === selectedCharId
@@ -197,6 +207,32 @@ export function EditorPage() {
     }
   };
 
+  const handleSyncAll = async () => {
+    if (!s3Config || !collection) return;
+    setIsSyncingAll(true);
+    try {
+      const inputs = collection.characters.map(buildSyncInput);
+      const results = await s3Service.syncAll(
+        s3Config.id,
+        inputs,
+        collection.name,
+        collection.description
+      );
+      const succeeded = results.filter((r) => r.success).length;
+      const failed = results.length - succeeded;
+      if (failed === 0) {
+        toast(`Synced all ${succeeded} characters to S3`, "success");
+      } else {
+        toast(`${succeeded} synced, ${failed} failed`, "error");
+      }
+      await loadS3Config();
+    } catch (err) {
+      toast(`Sync all error: ${err}`, "error");
+    } finally {
+      setIsSyncingAll(false);
+    }
+  };
+
   const handleResolveConflict = async (charId: string, resolution: "local" | "remote") => {
     if (!s3Config || !collection) return;
     setSyncingCharId(charId);
@@ -297,13 +333,34 @@ export function EditorPage() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "var(--space-1)",
-              fontSize: "var(--text-xs)",
-              color: "var(--color-text-tertiary)",
+              gap: "var(--space-2)",
             }}
           >
-            <Cloud size={14} />
-            <span>S3 Sync</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-1)",
+                fontSize: "var(--text-xs)",
+                color: "var(--color-text-tertiary)",
+              }}
+            >
+              <Cloud size={14} />
+              <span>S3 Sync</span>
+            </div>
+            <button
+              className="btn btn--ghost btn--sm"
+              onClick={handleSyncAll}
+              disabled={isSyncingAll || syncingCharId !== null}
+              title="Upload all characters to S3"
+            >
+              {isSyncingAll ? (
+                <Loader2 size={14} className="spin" />
+              ) : (
+                <Upload size={14} />
+              )}
+              Sync All
+            </button>
           </div>
         )}
       </header>

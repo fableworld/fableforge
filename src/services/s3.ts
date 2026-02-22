@@ -118,4 +118,21 @@ export const s3Service = {
             collectionDescription,
         });
     },
+
+    /**
+     * Sync all characters in a collection to S3.
+     */
+    async syncAll(
+        configId: string,
+        characters: CharacterSyncInput[],
+        collectionName: string,
+        collectionDescription?: string
+    ): Promise<SyncResult[]> {
+        return invoke<SyncResult[]>("s3_sync_all", {
+            configId,
+            characters,
+            collectionName,
+            collectionDescription,
+        });
+    },
 };
