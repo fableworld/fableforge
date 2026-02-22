@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { S3Config, S3ConnectionResult } from "@/stores/s3";
+import type {
+    S3Config,
+    S3ConnectionResult,
+    SyncMetadata,
+    SyncResult,
+    CharacterSyncInput,
+} from "@/stores/s3";
 
 export const s3Service = {
     /**
@@ -50,5 +56,66 @@ export const s3Service = {
      */
     async getPublicUrl(configId: string): Promise<string | null> {
         return invoke<string | null>("s3_get_public_url", { configId });
+    },
+
+    // --- Sync Operations ---
+
+    /**
+     * Upload a character and its assets to S3.
+     */
+    async syncUpload(
+        configId: string,
+        character: CharacterSyncInput,
+        collectionName: string,
+        collectionDescription?: string
+    ): Promise<SyncResult> {
+        return invoke<SyncResult>("s3_sync_upload", {
+            configId,
+            character,
+            collectionName,
+            collectionDescription,
+        });
+    },
+
+    /**
+     * Download a character and its assets from S3.
+     */
+    async syncDownload(
+        configId: string,
+        characterId: string
+    ): Promise<SyncResult> {
+        return invoke<SyncResult>("s3_sync_download", {
+            configId,
+            characterId,
+        });
+    },
+
+    /**
+     * Get sync status for all characters tied to a config.
+     */
+    async getSyncStatus(configId: string): Promise<SyncMetadata[]> {
+        return invoke<SyncMetadata[]>("s3_get_sync_status", { configId });
+    },
+
+    /**
+     * Force resolve a conflict.
+     * @param resolution - "local" (upload our version) or "remote" (download theirs)
+     */
+    async resolveConflict(
+        configId: string,
+        characterId: string,
+        resolution: "local" | "remote",
+        character?: CharacterSyncInput,
+        collectionName?: string,
+        collectionDescription?: string
+    ): Promise<SyncResult> {
+        return invoke<SyncResult>("s3_resolve_conflict", {
+            configId,
+            characterId,
+            resolution,
+            character,
+            collectionName,
+            collectionDescription,
+        });
     },
 };

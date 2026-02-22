@@ -60,3 +60,88 @@ impl From<crate::s3::client::S3ConnectionInfo> for S3ConnectionResultDto {
         }
     }
 }
+
+// --- Sync DTOs ---
+
+/// DTO for sync metadata per character.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncMetadataDto {
+    pub character_id: String,
+    pub sync_status: String,
+    pub local_hash: Option<String>,
+    pub remote_etag: Option<String>,
+    pub last_synced_at: Option<String>,
+    pub sync_enabled: bool,
+}
+
+/// DTO for a single character sync result.
+#[derive(Debug, Clone, Serialize)]
+pub struct SyncResultDto {
+    pub character_id: String,
+    pub success: bool,
+    pub status: String,
+    pub message: Option<String>,
+}
+
+/// DTO for sync progress events emitted during upload/download.
+#[derive(Debug, Clone, Serialize)]
+pub struct SyncProgressEvent {
+    pub character_id: String,
+    pub phase: String,
+    pub progress: f64,
+    pub file_name: Option<String>,
+}
+
+/// DTO for character data needed by the sync engine.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CharacterSyncInputDto {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_at: Option<String>,
+    pub preview_image_path: Option<String>,
+    pub nfc_payload: Option<String>,
+    pub device_address: Option<u32>,
+    pub track_paths: Vec<String>,
+    pub track_titles: Vec<Option<String>>,
+}
+
+impl From<crate::s3::sync::SyncMetadata> for SyncMetadataDto {
+    fn from(m: crate::s3::sync::SyncMetadata) -> Self {
+        SyncMetadataDto {
+            character_id: m.character_id,
+            sync_status: m.sync_status.to_string(),
+            local_hash: m.local_hash,
+            remote_etag: m.remote_etag,
+            last_synced_at: m.last_synced_at,
+            sync_enabled: m.sync_enabled,
+        }
+    }
+}
+
+impl From<crate::s3::sync::CharacterSyncResult> for SyncResultDto {
+    fn from(r: crate::s3::sync::CharacterSyncResult) -> Self {
+        SyncResultDto {
+            character_id: r.character_id,
+            success: r.success,
+            status: r.status,
+            message: r.message,
+        }
+    }
+}
+
+impl From<CharacterSyncInputDto> for crate::s3::sync::CharacterSyncInput {
+    fn from(d: CharacterSyncInputDto) -> Self {
+        crate::s3::sync::CharacterSyncInput {
+            id: d.id,
+            name: d.name,
+            description: d.description,
+            created_at: d.created_at,
+            preview_image_path: d.preview_image_path,
+            nfc_payload: d.nfc_payload,
+            device_address: d.device_address,
+            track_paths: d.track_paths,
+            track_titles: d.track_titles,
+        }
+    }
+}
