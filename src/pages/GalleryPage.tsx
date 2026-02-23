@@ -15,7 +15,7 @@ import { AddRegistryDialog } from "@/components/AddRegistryDialog";
 export function GalleryPage() {
   const [registries] = useAtom(registriesAtom);
   const setRegistries = useSetAtom(registriesAtom);
-  const setCharacters = useSetAtom(charactersAtom);
+  const [characters, setCharacters] = useAtom(charactersAtom);
   const [filtered] = useAtom(filteredCharactersAtom);
   const [isLoading, setIsLoading] = useAtom(isLoadingAtom);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,7 +37,7 @@ export function GalleryPage() {
     loadData();
   }, [loadData]);
 
-  const hasRegistries = registries.length > 0;
+  const hasData = registries.length > 0 || characters.length > 0;
 
   return (
     <>
@@ -53,7 +53,7 @@ export function GalleryPage() {
       </header>
 
       <div className="main-content__body">
-        {!hasRegistries && !isLoading ? (
+        {!hasData && !isLoading ? (
           <div className="empty-state">
             <div className="empty-state__icon">
               <Library size={28} />
@@ -79,13 +79,13 @@ export function GalleryPage() {
             >
               {isLoading
                 ? Array.from({ length: 8 }).map((_, i) => (
-                    <CharacterCardSkeleton key={i} />
-                  ))
+                  <CharacterCardSkeleton key={i} />
+                ))
                 : filtered.map((character) => (
-                    <CharacterCard key={character.id} character={character} />
-                  ))}
+                  <CharacterCard key={character.id} character={character} />
+                ))}
             </div>
-            {!isLoading && filtered.length === 0 && hasRegistries && (
+            {!isLoading && filtered.length === 0 && hasData && (
               <div className="empty-state" style={{ paddingTop: "var(--space-10)" }}>
                 <h2 className="empty-state__title">No matches</h2>
                 <p className="empty-state__description">
