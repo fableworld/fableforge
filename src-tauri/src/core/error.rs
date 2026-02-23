@@ -12,6 +12,10 @@ pub enum FabaError {
     SlotOccupied(usize),
     #[error("{0}")]
     Custom(String),
+    #[error("S3 error: {0}")]
+    S3(String),
+    #[error("Credential error: {0}")]
+    Credential(String),
 }
 
 impl From<rusqlite::Error> for FabaError {
