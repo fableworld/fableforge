@@ -17,8 +17,15 @@ pub fn build_client(
 ) -> Result<Client, FabaError> {
     let credentials = Credentials::new(access_key, secret_key, None, None, "fableforge");
 
+    // Normalize endpoint (ensure it has a scheme)
+    let mut endpoint = config.endpoint.trim().to_string();
+    if !endpoint.contains("://") {
+        endpoint = format!("https://{}", endpoint);
+    }
+
     let s3_config = S3ConfigBuilder::new()
-        .endpoint_url(&config.endpoint)
+        .behavior_version_latest()
+        .endpoint_url(endpoint)
         .region(Region::new(config.region.clone()))
         .credentials_provider(credentials)
         .force_path_style(true)
@@ -70,7 +77,7 @@ pub async fn test_connection(
             }
         }
         Err(err) => {
-            let msg = format!("Connection failed: {}", err);
+            let msg = format!("Connection failed: {}. Details: {:?}", err, err);
             tracing::error!("S3 connection test failed: {}", msg);
             S3ConnectionInfo {
                 success: false,
@@ -78,5 +85,26 @@ pub async fn test_connection(
                 object_count: None,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_client_normalization() {
+        let config = S3Config {
+            id: "test".into(),
+            name: "Test".into(),
+            endpoint: "s3.example.com".into(), // missing scheme
+            region: "auto".into(),
+            bucket: "bucket".into(),
+            prefix: None,
+            is_public: false,
+            collection_id: "col".into(),
+        };
+        let client = build_client(&config, "access", "secret");
+        assert!(client.is_ok());
     }
 }

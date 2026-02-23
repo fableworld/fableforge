@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { X, Loader2, CheckCircle2, XCircle, Server } from "lucide-react";
 import type { S3Config } from "@/stores/s3";
 import type { Collection } from "@/lib/schemas";
 import { s3Service } from "@/services/s3";
@@ -52,7 +52,6 @@ export function S3ConfigDialog({
             setPrefix(existingConfig.prefix ?? "");
             setIsPublic(existingConfig.is_public);
             setCollectionId(existingConfig.collection_id);
-            // Credentials are not pre-filled (they're in keyring)
             setAccessKey("");
             setSecretKey("");
         } else {
@@ -93,6 +92,15 @@ export function S3ConfigDialog({
 
     const canTest = canSave;
 
+    function normalizeEndpoint(url: string): string {
+        let trimmed = url.trim().replace(/\/+$/, "");
+        if (!trimmed) return "";
+        if (!trimmed.includes("://")) {
+            return `https://${trimmed}`;
+        }
+        return trimmed;
+    }
+
     async function handleSave() {
         if (!canSave) return;
         setSaving(true);
@@ -100,7 +108,7 @@ export function S3ConfigDialog({
             const config: S3Config = {
                 id: existingConfig?.id ?? crypto.randomUUID(),
                 name: name.trim(),
-                endpoint: endpoint.trim().replace(/\/+$/, ""),
+                endpoint: normalizeEndpoint(endpoint),
                 region: region.trim() || "auto",
                 bucket: bucket.trim(),
                 prefix: prefix.trim() || undefined,
@@ -133,11 +141,10 @@ export function S3ConfigDialog({
         setTesting(true);
         setTestResult(null);
         try {
-            // Save first so test can find the config
             const config: S3Config = {
                 id: existingConfig?.id ?? crypto.randomUUID(),
                 name: name.trim(),
-                endpoint: endpoint.trim().replace(/\/+$/, ""),
+                endpoint: normalizeEndpoint(endpoint),
                 region: region.trim() || "auto",
                 bucket: bucket.trim(),
                 prefix: prefix.trim() || undefined,
@@ -147,8 +154,8 @@ export function S3ConfigDialog({
 
             await s3Service.saveConfig(
                 config,
-                accessKey.trim(),
-                secretKey.trim()
+                accessKey.trim() || (isEditing ? "unchanged" : ""),
+                secretKey.trim() || (isEditing ? "unchanged" : "")
             );
 
             const result = await s3Service.testConnection(config.id);
@@ -178,12 +185,14 @@ export function S3ConfigDialog({
     return (
         <div className="dialog-overlay" onClick={() => onOpenChange(false)}>
             <div
-                className="dialog"
+                className="dialog-content"
                 onClick={(e) => e.stopPropagation()}
-                style={{ maxWidth: "540px" }}
+                style={{ width: "min(540px, 90vw)" }}
             >
-                <div className="dialog__header">
-                    <h2 className="dialog__title">
+                {/* Header */}
+                <div className="dialog-header">
+                    <h2 className="dialog-title">
+                        <Server size={18} />
                         {isEditing ? "Edit S3 Connection" : "New S3 Connection"}
                     </h2>
                     <button
@@ -194,47 +203,51 @@ export function S3ConfigDialog({
                     </button>
                 </div>
 
-                <div className="dialog__body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <p className="dialog-description">
+                    Connect an S3-compatible bucket (Backblaze B2, Cloudflare R2, MinIO, etc.) to sync your characters.
+                </p>
+
+                {/* Form body */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+
                     {/* Name */}
-                    <div className="form-field">
+                    <div className="form-group">
                         <label className="form-label">Name</label>
                         <input
-                            className="form-input"
+                            className="dialog-input"
                             placeholder="e.g. My Backblaze Bucket"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            autoFocus
                         />
                     </div>
 
                     {/* Endpoint */}
-                    <div className="form-field">
+                    <div className="form-group">
                         <label className="form-label">Endpoint URL</label>
                         <input
-                            className="form-input"
+                            className="dialog-input"
                             placeholder="https://s3.us-west-001.backblazeb2.com"
                             value={endpoint}
                             onChange={(e) => setEndpoint(e.target.value)}
                         />
-                        <span className="form-hint">
-                            S3-compatible endpoint (Backblaze, Cloudflare R2, MinIO, etc.)
-                        </span>
                     </div>
 
-                    {/* Region + Bucket (side by side) */}
+                    {/* Region + Bucket */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-                        <div className="form-field">
+                        <div className="form-group">
                             <label className="form-label">Region</label>
                             <input
-                                className="form-input"
+                                className="dialog-input"
                                 placeholder="auto"
                                 value={region}
                                 onChange={(e) => setRegion(e.target.value)}
                             />
                         </div>
-                        <div className="form-field">
+                        <div className="form-group">
                             <label className="form-label">Bucket</label>
                             <input
-                                className="form-input"
+                                className="dialog-input"
                                 placeholder="my-bucket-name"
                                 value={bucket}
                                 onChange={(e) => setBucket(e.target.value)}
@@ -243,29 +256,37 @@ export function S3ConfigDialog({
                     </div>
 
                     {/* Prefix */}
-                    <div className="form-field">
+                    <div className="form-group">
                         <label className="form-label">
-                            Prefix <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal" }}>(optional)</span>
+                            Prefix{" "}
+                            <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal", textTransform: "none", letterSpacing: "0" }}>
+                                (optional)
+                            </span>
                         </label>
                         <input
-                            className="form-input"
+                            className="dialog-input"
                             placeholder="fableforge/happygang"
                             value={prefix}
                             onChange={(e) => setPrefix(e.target.value)}
                         />
-                        <span className="form-hint">
-                            Subdirectory path within the bucket. Leave empty to use bucket root.
-                        </span>
                     </div>
+
+                    {/* Divider */}
+                    <div style={{ borderTop: "1px solid var(--color-border-subtle)", margin: "0" }} />
 
                     {/* Credentials */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-                        <div className="form-field">
+                        <div className="form-group">
                             <label className="form-label">
-                                Access Key {isEditing && <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal" }}>(leave blank to keep)</span>}
+                                Access Key{" "}
+                                {isEditing && (
+                                    <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal", textTransform: "none", letterSpacing: "0" }}>
+                                        (leave blank to keep)
+                                    </span>
+                                )}
                             </label>
                             <input
-                                className="form-input"
+                                className="dialog-input"
                                 type="password"
                                 placeholder={isEditing ? "••••••••" : "Access Key ID"}
                                 value={accessKey}
@@ -273,12 +294,17 @@ export function S3ConfigDialog({
                                 autoComplete="off"
                             />
                         </div>
-                        <div className="form-field">
+                        <div className="form-group">
                             <label className="form-label">
-                                Secret Key {isEditing && <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal" }}>(leave blank to keep)</span>}
+                                Secret Key{" "}
+                                {isEditing && (
+                                    <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal", textTransform: "none", letterSpacing: "0" }}>
+                                        (leave blank to keep)
+                                    </span>
+                                )}
                             </label>
                             <input
-                                className="form-input"
+                                className="dialog-input"
                                 type="password"
                                 placeholder={isEditing ? "••••••••" : "Secret Access Key"}
                                 value={secretKey}
@@ -288,15 +314,18 @@ export function S3ConfigDialog({
                         </div>
                     </div>
 
+                    {/* Divider */}
+                    <div style={{ borderTop: "1px solid var(--color-border-subtle)", margin: "0" }} />
+
                     {/* Collection */}
-                    <div className="form-field">
+                    <div className="form-group">
                         <label className="form-label">Linked Collection</label>
                         <select
-                            className="form-input"
+                            className="dialog-input"
                             value={collectionId}
                             onChange={(e) => setCollectionId(e.target.value)}
                         >
-                            <option value="">Select a collection...</option>
+                            <option value="">Select a collection…</option>
                             {availableCollections.map((c) => (
                                 <option key={c.id} value={c.id}>
                                     {c.name}
@@ -313,17 +342,19 @@ export function S3ConfigDialog({
                             gap: "var(--space-2)",
                             cursor: "pointer",
                             fontSize: "var(--text-sm)",
+                            color: "var(--color-text-secondary)",
                         }}
                     >
                         <input
                             type="checkbox"
                             checked={isPublic}
                             onChange={(e) => setIsPublic(e.target.checked)}
+                            style={{ accentColor: "var(--color-primary-500)" }}
                         />
                         Bucket is publicly readable
                     </label>
 
-                    {/* Test result */}
+                    {/* Test result banner */}
                     {testResult && (
                         <div
                             style={{
@@ -333,25 +364,26 @@ export function S3ConfigDialog({
                                 padding: "var(--space-3)",
                                 borderRadius: "var(--radius-md)",
                                 backgroundColor: testResult.success
-                                    ? "var(--color-success-bg, rgba(34, 197, 94, 0.1))"
-                                    : "var(--color-error-bg, rgba(239, 68, 68, 0.1))",
+                                    ? "rgba(34, 197, 94, 0.08)"
+                                    : "rgba(239, 68, 68, 0.08)",
                                 fontSize: "var(--text-sm)",
                                 color: testResult.success
-                                    ? "var(--color-success, #22c55e)"
-                                    : "var(--color-error, #ef4444)",
+                                    ? "var(--color-success-500)"
+                                    : "var(--color-danger-500)",
                             }}
                         >
                             {testResult.success ? (
-                                <CheckCircle2 size={16} />
+                                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
                             ) : (
-                                <XCircle size={16} />
+                                <XCircle size={16} style={{ flexShrink: 0 }} />
                             )}
                             <span style={{ wordBreak: "break-word" }}>{testResult.message}</span>
                         </div>
                     )}
                 </div>
 
-                <div className="dialog__footer">
+                {/* Footer */}
+                <div className="dialog-actions">
                     <button
                         className="btn btn--secondary"
                         onClick={handleTest}
@@ -360,7 +392,7 @@ export function S3ConfigDialog({
                         {testing ? (
                             <>
                                 <Loader2 size={14} className="spin" />
-                                Testing...
+                                Testing…
                             </>
                         ) : (
                             "Test Connection"
@@ -382,7 +414,7 @@ export function S3ConfigDialog({
                         {saving ? (
                             <>
                                 <Loader2 size={14} className="spin" />
-                                Saving...
+                                Saving…
                             </>
                         ) : isEditing ? (
                             "Update"

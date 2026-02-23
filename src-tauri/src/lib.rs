@@ -514,6 +514,10 @@ async fn s3_store_credentials(
     access_key: String,
     secret_key: String,
 ) -> Result<(), FabaError> {
+    if access_key == "unchanged" || secret_key == "unchanged" {
+        tracing::info!("Credential storage skipped for config {}: keys are 'unchanged'", config_id);
+        return Ok(());
+    }
     s3::credentials::store_credentials(&config_id, &access_key, &secret_key)
 }
 
