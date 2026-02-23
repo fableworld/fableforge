@@ -115,11 +115,11 @@ export function CharacterForm({
         <div className="form-group">
           <label className="form-label">Preview Image</label>
           <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
-            <div 
-              style={{ 
-                width: 100, 
-                height: 100, 
-                borderRadius: "var(--radius-md)", 
+            <div
+              style={{
+                width: 100,
+                height: 100,
+                borderRadius: "var(--radius-md)",
                 overflow: "hidden",
                 border: "1px solid var(--color-border)",
                 backgroundColor: "var(--color-bg-secondary)",
@@ -128,9 +128,9 @@ export function CharacterForm({
                 justifyContent: "center"
               }}
             >
-              <img 
-                src={getImageSrc(previewImage)} 
-                alt="Preview" 
+              <img
+                src={getImageSrc(previewImage)}
+                alt="Preview"
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/logo.png";
@@ -210,6 +210,7 @@ export function CharacterForm({
         <TrackListEditor
           tracks={tracks}
           collectionId={collectionId}
+          characterId={character.id}
           onChange={setTracks}
         />
       </div>

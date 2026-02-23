@@ -103,6 +103,15 @@ async fn copy_audio_file(
     Ok(dest.to_string_lossy().to_string())
 }
 
+/// Read a local audio file as raw bytes so the frontend can create a Blob URL.
+/// This is needed on Linux (WebKitGTK) where asset:// protocol doesn't play well
+/// with HTMLAudioElement.
+#[tauri::command]
+async fn read_audio_file(path: String) -> Result<Vec<u8>, FabaError> {
+    std::fs::read(&path)
+        .map_err(|e| FabaError::Custom(format!("Failed to read audio file: {}", e)))
+}
+
 #[tauri::command]
 fn check_device(maybe_faba: State<FabaState>) -> DeviceStatusDto {
     let guard = maybe_faba.lock().ok();
@@ -878,6 +887,7 @@ pub fn run() {
             load_tracks,
             write_tracks,
             copy_audio_file,
+            read_audio_file,
             check_device,
             get_device_slots,
             write_character_to_slot,

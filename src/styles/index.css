@@ -970,6 +970,51 @@ body {
   font-size: var(--text-xs);
 }
 
+.track-item__play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.track-item__play-btn:hover {
+  background: var(--color-primary-50);
+  color: var(--color-primary-500);
+}
+
+[data-theme="dark"] .track-item__play-btn:hover {
+  background: rgba(108, 82, 245, 0.12);
+  color: var(--color-primary-400);
+}
+
+.track-item__play-btn--active {
+  background: var(--color-primary-100);
+  color: var(--color-primary-600);
+}
+
+[data-theme="dark"] .track-item__play-btn--active {
+  background: rgba(108, 82, 245, 0.2);
+  color: var(--color-primary-300);
+}
+
+.track-item--playing {
+  background: var(--color-primary-50);
+  border-left: 3px solid var(--color-primary-500);
+}
+
+[data-theme="dark"] .track-item--playing {
+  background: rgba(108, 82, 245, 0.08);
+  border-left: 3px solid var(--color-primary-400);
+}
+
 .model-links {
   display: flex;
   flex-wrap: wrap;
@@ -1369,6 +1414,51 @@ textarea.dialog-input {
 .track-editor__title-input:focus {
   background: var(--color-bg);
   box-shadow: 0 0 0 1px var(--color-primary-400);
+}
+
+.track-editor__play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.track-editor__play-btn:hover {
+  background: var(--color-primary-50);
+  color: var(--color-primary-500);
+}
+
+[data-theme="dark"] .track-editor__play-btn:hover {
+  background: rgba(108, 82, 245, 0.12);
+  color: var(--color-primary-400);
+}
+
+.track-editor__play-btn--active {
+  background: var(--color-primary-100);
+  color: var(--color-primary-600);
+}
+
+[data-theme="dark"] .track-editor__play-btn--active {
+  background: rgba(108, 82, 245, 0.2);
+  color: var(--color-primary-300);
+}
+
+.track-editor__item--playing {
+  background: var(--color-primary-50);
+  border-left: 3px solid var(--color-primary-500);
+}
+
+[data-theme="dark"] .track-editor__item--playing {
+  background: rgba(108, 82, 245, 0.08);
+  border-left: 3px solid var(--color-primary-400);
 }
 
 /* --- Button Size: XS --- */

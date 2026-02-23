@@ -1,20 +1,24 @@
 import { useState, useRef, useCallback } from "react";
-import { Plus, Trash2, GripVertical, Music } from "lucide-react";
+import { Plus, Trash2, GripVertical, Music, Play, Square, Loader2 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import type { Track } from "@/lib/schemas";
 
 interface TrackListEditorProps {
   tracks: Track[];
   collectionId: string;
+  characterId: string;
   onChange: (tracks: Track[]) => void;
 }
 
 export function TrackListEditor({
   tracks,
   collectionId,
+  characterId,
   onChange,
 }: TrackListEditorProps) {
+  const audioPlayer = useAudioPlayer();
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const dragRef = useRef<number | null>(null);
@@ -110,40 +114,63 @@ export function TrackListEditor({
         </div>
       ) : (
         <div className="track-editor__list">
-          {tracks.map((track, i) => (
-            <div
-              key={i}
-              className={`track-editor__item ${dragIdx === i ? "track-editor__item--dragging" : ""} ${dragOverIdx === i ? "track-editor__item--over" : ""}`}
-              draggable
-              onDragStart={() => handleDragStart(i)}
-              onDragOver={(e) => handleDragOver(e, i)}
-              onDrop={() => handleDrop(i)}
-              onDragEnd={() => {
-                setDragIdx(null);
-                setDragOverIdx(null);
-              }}
-            >
-              <div className="track-editor__grip">
-                <GripVertical size={14} />
-              </div>
-              <span className="track-editor__number">{i + 1}</span>
-              <input
-                type="text"
-                className="track-editor__title-input"
-                value={track.title ?? ""}
-                onChange={(e) => updateTrackTitle(i, e.target.value)}
-                placeholder="Track title"
-              />
-              <button
-                type="button"
-                className="btn btn--ghost btn--icon btn--sm"
-                onClick={() => removeTrack(i)}
-                title="Remove track"
+          {tracks.map((track, i) => {
+            const trackId = `${characterId}-${i}`;
+            const source = track.local_path ?? track.url ?? null;
+            const playing = audioPlayer.isPlaying(trackId);
+            const loading = audioPlayer.isLoading(trackId);
+
+            return (
+              <div
+                key={i}
+                className={`track-editor__item ${dragIdx === i ? "track-editor__item--dragging" : ""} ${dragOverIdx === i ? "track-editor__item--over" : ""} ${playing ? "track-editor__item--playing" : ""}`}
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={(e) => handleDragOver(e, i)}
+                onDrop={() => handleDrop(i)}
+                onDragEnd={() => {
+                  setDragIdx(null);
+                  setDragOverIdx(null);
+                }}
               >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
+                <div className="track-editor__grip">
+                  <GripVertical size={14} />
+                </div>
+                <span className="track-editor__number">{i + 1}</span>
+                <input
+                  type="text"
+                  className="track-editor__title-input"
+                  value={track.title ?? ""}
+                  onChange={(e) => updateTrackTitle(i, e.target.value)}
+                  placeholder="Track title"
+                />
+                {source && (
+                  <button
+                    type="button"
+                    className={`track-editor__play-btn ${playing ? "track-editor__play-btn--active" : ""}`}
+                    onClick={() => audioPlayer.play(trackId, source)}
+                    title={loading ? "Loading…" : playing ? "Stop" : "Play"}
+                  >
+                    {loading ? (
+                      <Loader2 size={13} className="spin" />
+                    ) : playing ? (
+                      <Square size={13} />
+                    ) : (
+                      <Play size={13} />
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--icon btn--sm"
+                  onClick={() => removeTrack(i)}
+                  title="Remove track"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

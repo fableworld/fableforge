@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync All button to batch-upload all characters in a collection to S3.
 - Auto-sync timer: periodic sync status refresh every 60 seconds.
 - `s3_sync_all` Tauri command for batch character upload.
+- Audio player with local file support (Blob URLs) and remote URL streaming.
 
 ## [0.1.1] 2026-02-22
 

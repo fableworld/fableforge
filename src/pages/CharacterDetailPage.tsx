@@ -8,11 +8,15 @@ import {
   Box,
   ExternalLink,
   Upload,
+  Play,
+  Square,
+  Loader2,
 } from "lucide-react";
 import { charactersAtom } from "@/stores/registries";
 import { registryService } from "@/services/registry";
 import { deviceStatusAtom } from "@/stores/device";
 import { WriteFlowOrchestrator } from "@/components/WriteFlowOrchestrator";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import type { Character } from "@/lib/schemas";
 
 export function CharacterDetailPage() {
@@ -25,6 +29,12 @@ export function CharacterDetailPage() {
 
   // Write flow state
   const [writeFlowOpen, setWriteFlowOpen] = useState(false);
+
+  // Audio playback
+  const audioPlayer = useAudioPlayer();
+
+  const getTrackSource = (track: { local_path?: string; url?: string }) =>
+    track.local_path ?? track.url ?? null;
 
   const loadIfNeeded = useCallback(async () => {
     if (characters.length === 0) {
@@ -91,8 +101,8 @@ export function CharacterDetailPage() {
             !device.connected
               ? "No device connected"
               : character.tracks.length === 0
-              ? "No tracks to write"
-              : "Write character to device"
+                ? "No tracks to write"
+                : "Write character to device"
           }
         >
           <Upload size={16} />
@@ -107,7 +117,7 @@ export function CharacterDetailPage() {
             <img
               src={
                 character.preview_image
-                  ? character.preview_image.startsWith("/") || character.preview_image.includes(":") 
+                  ? character.preview_image.startsWith("/") || character.preview_image.includes(":")
                     ? character.preview_image.startsWith("/") ? convertFileSrc(character.preview_image) : character.preview_image
                     : character.preview_image
                   : "/logo.png"
@@ -135,20 +145,46 @@ export function CharacterDetailPage() {
                 Tracks ({character.tracks.length})
               </h2>
               <div className="track-list">
-                {character.tracks.map((track, i) => (
-                  <div key={i} className="track-item">
-                    <span className="track-item__number">{i + 1}</span>
-                    <span className="track-item__title">
-                      {track.title ?? `Track ${i + 1}`}
-                    </span>
-                    {track.duration != null && (
-                      <span className="track-item__duration">
-                        {Math.floor(track.duration / 60)}:
-                        {String(Math.floor(track.duration % 60)).padStart(2, "0")}
+                {character.tracks.map((track, i) => {
+                  const trackId = `${character.id}-${i}`;
+                  const source = getTrackSource(track);
+                  const playing = audioPlayer.isPlaying(trackId);
+                  const loading = audioPlayer.isLoading(trackId);
+
+                  return (
+                    <div
+                      key={i}
+                      className={`track-item ${playing ? "track-item--playing" : ""}`}
+                    >
+                      <span className="track-item__number">{i + 1}</span>
+                      <span className="track-item__title">
+                        {track.title ?? `Track ${i + 1}`}
                       </span>
-                    )}
-                  </div>
-                ))}
+                      {track.duration != null && (
+                        <span className="track-item__duration">
+                          {Math.floor(track.duration / 60)}:
+                          {String(Math.floor(track.duration % 60)).padStart(2, "0")}
+                        </span>
+                      )}
+                      {source && (
+                        <button
+                          type="button"
+                          className={`track-item__play-btn ${playing ? "track-item__play-btn--active" : ""}`}
+                          onClick={() => audioPlayer.play(trackId, source)}
+                          title={loading ? "Loading…" : playing ? "Stop" : "Play"}
+                        >
+                          {loading ? (
+                            <Loader2 size={14} className="spin" />
+                          ) : playing ? (
+                            <Square size={14} />
+                          ) : (
+                            <Play size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
