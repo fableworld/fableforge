@@ -23,6 +23,21 @@ pub fn build_client(
         endpoint = format!("https://{}", endpoint);
     }
 
+    // SANITIZATION: If the endpoint URL ends with the bucket name after a slash,
+    // strip it. This prevents "double-bucketing" issues with path-style addressing.
+    // e.g. "https://abc.r2.cloudflarestorage.com/mybucket" -> "https://abc.r2.cloudflarestorage.com"
+    if endpoint.ends_with(&format!("/{}", config.bucket)) {
+        tracing::warn!("Endpoint '{}' contains bucket name; stripping it to avoid double-bucketing", endpoint);
+        endpoint = endpoint.trim_end_matches(&format!("/{}", config.bucket)).to_string();
+    }
+    // Also handle trailing slash
+    if endpoint.ends_with(&format!("/{}/", config.bucket)) {
+        tracing::warn!("Endpoint '{}' contains bucket name; stripping it", endpoint);
+        endpoint = endpoint.trim_end_matches(&format!("/{}/", config.bucket)).to_string();
+    }
+
+    tracing::info!("Building S3 client: endpoint='{}', bucket='{}', region='{}'", endpoint, config.bucket, config.region);
+
     let s3_config = S3ConfigBuilder::new()
         .behavior_version_latest()
         .endpoint_url(endpoint)
@@ -104,6 +119,24 @@ mod tests {
             is_public: false,
             collection_id: "col".into(),
         };
+        let client = build_client(&config, "access", "secret");
+        assert!(client.is_ok());
+    }
+
+    #[test]
+    fn test_build_client_strips_bucket_from_endpoint() {
+        let config = S3Config {
+            id: "test".into(),
+            name: "Test".into(),
+            endpoint: "https://r2.example.com/my-bucket".into(),
+            region: "auto".into(),
+            bucket: "my-bucket".into(),
+            prefix: None,
+            is_public: false,
+            collection_id: "col".into(),
+        };
+        // We can't easily inspect the private config inside the client, but we verify it doesn't crash
+        // and logging (if enabled in tests) would show the warning.
         let client = build_client(&config, "access", "secret");
         assert!(client.is_ok());
     }

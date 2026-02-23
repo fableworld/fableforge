@@ -95,6 +95,13 @@ export function S3ConfigDialog({
     function normalizeEndpoint(url: string): string {
         let trimmed = url.trim().replace(/\/+$/, "");
         if (!trimmed) return "";
+
+        // Strip bucket name from endpoint if present at the end
+        // e.g. "https://abc.r2.cloudflarestorage.com/my-bucket" -> "https://abc.r2.cloudflarestorage.com"
+        if (bucket && trimmed.toLowerCase().endsWith(`/${bucket.trim().toLowerCase()}`)) {
+            trimmed = trimmed.substring(0, trimmed.length - bucket.trim().length - 1);
+        }
+
         if (!trimmed.includes("://")) {
             return `https://${trimmed}`;
         }
