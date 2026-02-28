@@ -21,6 +21,9 @@ pub struct S3Config {
     pub prefix: Option<String>,
     /// Whether the bucket is publicly readable
     pub is_public: bool,
+    /// Optional base URL for public access (e.g. "https://cdn.example.com")
+    /// If provided, this is used instead of endpoint/bucket for public links.
+    pub base_url: Option<String>,
     /// ID of the local collection linked to this S3 config
     pub collection_id: String,
 }
@@ -46,11 +49,16 @@ impl S3Config {
             return None;
         }
 
-        let endpoint = self.endpoint.trim_end_matches('/');
         let key = self.full_key("index.json");
 
-        // Use path-style URL: endpoint/bucket/key
-        Some(format!("{}/{}/{}", endpoint, self.bucket, key))
+        if let Some(base_url) = &self.base_url {
+            let base = base_url.trim_end_matches('/');
+            Some(format!("{}/{}", base, key))
+        } else {
+            let endpoint = self.endpoint.trim_end_matches('/');
+            // Use path-style URL: endpoint/bucket/key
+            Some(format!("{}/{}/{}", endpoint, self.bucket, key))
+        }
     }
 }
 
@@ -67,6 +75,7 @@ mod tests {
             bucket: "my-bucket".to_string(),
             prefix: prefix.map(String::from),
             is_public,
+            base_url: None,
             collection_id: "col-1".to_string(),
         }
     }
@@ -110,6 +119,16 @@ mod tests {
         assert_eq!(
             config.public_index_url(),
             Some("https://s3.example.com/my-bucket/index.json".to_string())
+        );
+    }
+
+    #[test]
+    fn public_url_with_base_url() {
+        let mut config = make_config(Some("fableforge/happygang"), true);
+        config.base_url = Some("https://cdn.example.com".to_string());
+        assert_eq!(
+            config.public_index_url(),
+            Some("https://cdn.example.com/fableforge/happygang/index.json".to_string())
         );
     }
 }

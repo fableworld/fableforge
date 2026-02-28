@@ -10,6 +10,8 @@ pub struct S3ConfigDto {
     pub bucket: String,
     pub prefix: Option<String>,
     pub is_public: bool,
+    pub base_url: Option<String>,
+    pub public_url: Option<String>,
     pub collection_id: String,
 }
 
@@ -23,6 +25,7 @@ pub struct S3ConnectionResultDto {
 
 impl From<crate::s3::config::S3Config> for S3ConfigDto {
     fn from(c: crate::s3::config::S3Config) -> Self {
+        let public_url = c.public_index_url();
         S3ConfigDto {
             id: c.id,
             name: c.name,
@@ -31,6 +34,8 @@ impl From<crate::s3::config::S3Config> for S3ConfigDto {
             bucket: c.bucket,
             prefix: c.prefix,
             is_public: c.is_public,
+            base_url: c.base_url,
+            public_url,
             collection_id: c.collection_id,
         }
     }
@@ -46,6 +51,7 @@ impl From<S3ConfigDto> for crate::s3::config::S3Config {
             bucket: d.bucket,
             prefix: d.prefix,
             is_public: d.is_public,
+            base_url: d.base_url,
             collection_id: d.collection_id,
         }
     }

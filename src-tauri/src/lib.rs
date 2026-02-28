@@ -462,6 +462,10 @@ async fn s3_save_config(app: AppHandle, config: S3ConfigDto) -> Result<(), FabaE
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default();
 
+    // Ensure public_url is populated before saving
+    let config_internal: s3::config::S3Config = config.into();
+    let config = S3ConfigDto::from(config_internal);
+
     // Upsert by config ID
     if let Some(idx) = configs.iter().position(|c| c.id == config.id) {
         configs[idx] = config;
@@ -487,6 +491,14 @@ async fn s3_get_configs(app: AppHandle) -> Result<Vec<S3ConfigDto>, FabaError> {
         .get("s3_configs")
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default();
+
+    // Ensure public_url is populated (it's not stored in the JSON usually, or might be missing)
+    let configs = configs.into_iter()
+        .map(|d| {
+            let config: s3::config::S3Config = d.into();
+            S3ConfigDto::from(config)
+        })
+        .collect();
 
     Ok(configs)
 }

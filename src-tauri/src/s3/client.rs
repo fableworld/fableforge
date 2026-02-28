@@ -117,6 +117,7 @@ mod tests {
             bucket: "bucket".into(),
             prefix: None,
             is_public: false,
+            base_url: None,
             collection_id: "col".into(),
         };
         let client = build_client(&config, "access", "secret");
@@ -133,6 +134,7 @@ mod tests {
             bucket: "my-bucket".into(),
             prefix: None,
             is_public: false,
+            base_url: None,
             collection_id: "col".into(),
         };
         // We can't easily inspect the private config inside the client, but we verify it doesn't crash

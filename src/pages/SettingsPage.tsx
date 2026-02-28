@@ -126,17 +126,17 @@ export function SettingsPage() {
     }
   };
 
-  const handleCopyPublicUrl = async (configId: string) => {
+  const handleCopyPublicUrl = (cfg: S3Config) => {
     try {
-      const url = await s3Service.getPublicUrl(configId);
+      const url = cfg.public_url;
       if (url) {
-        await navigator.clipboard.writeText(url);
+        navigator.clipboard.writeText(url);
         show("Public URL copied to clipboard", "success");
       } else {
         show("Bucket is not marked as public", "error");
       }
     } catch (err) {
-      show(`Failed to get URL: ${err}`, "error");
+      show(`Failed to copy URL: ${err}`, "error");
     }
   };
 
@@ -353,7 +353,7 @@ export function SettingsPage() {
                       {cfg.is_public && (
                         <button
                           className="btn btn--ghost btn--icon btn--sm"
-                          onClick={() => handleCopyPublicUrl(cfg.id)}
+                          onClick={() => handleCopyPublicUrl(cfg)}
                           title="Copy public index URL"
                         >
                           <Copy size={14} />

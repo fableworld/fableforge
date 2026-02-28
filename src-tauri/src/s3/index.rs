@@ -73,8 +73,16 @@ pub struct IndexModel3D {
 /// Build the public URL for an asset given the S3 config.
 /// Constructs: `{endpoint}/{bucket}/{key}`
 fn asset_url(config: &S3Config, relative_key: &str) -> String {
-    let endpoint = config.endpoint.trim_end_matches('/');
     let full_key = config.full_key(relative_key);
+
+    if config.is_public {
+        if let Some(base_url) = &config.base_url {
+            let base = base_url.trim_end_matches('/');
+            return format!("{}/{}", base, full_key);
+        }
+    }
+
+    let endpoint = config.endpoint.trim_end_matches('/');
     format!("{}/{}/{}", endpoint, config.bucket, full_key)
 }
 
@@ -203,6 +211,7 @@ mod tests {
             bucket: "mybucket".into(),
             prefix: Some("fableforge/happygang".into()),
             is_public: true,
+            base_url: None,
             collection_id: "col1".into(),
         }
     }
@@ -235,6 +244,29 @@ mod tests {
             Some("https://s3.example.com/mybucket/fableforge/happygang/char-123/tracks/track_0.mp3".into())
         );
         assert_eq!(char.tracks[0].title, Some("Song 1".into()));
+    }
+
+    #[test]
+    fn build_index_character_with_base_url() {
+        let mut config = test_config();
+        config.base_url = Some("https://cdn.example.com/assets".into());
+        let char = build_index_character(
+            &config,
+            "char-123",
+            "My Character",
+            None,
+            None,
+            None,
+            None,
+            true,
+            1,
+            &[None],
+        );
+
+        assert_eq!(
+            char.preview_image,
+            Some("https://cdn.example.com/assets/fableforge/happygang/char-123/preview.jpg".into())
+        );
     }
 
     #[test]

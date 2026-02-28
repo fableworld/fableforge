@@ -32,6 +32,7 @@ export function S3ConfigDialog({
     const [accessKey, setAccessKey] = useState("");
     const [secretKey, setSecretKey] = useState("");
     const [isPublic, setIsPublic] = useState(false);
+    const [baseUrl, setBaseUrl] = useState("");
     const [collectionId, setCollectionId] = useState("");
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
@@ -51,6 +52,7 @@ export function S3ConfigDialog({
             setBucket(existingConfig.bucket);
             setPrefix(existingConfig.prefix ?? "");
             setIsPublic(existingConfig.is_public);
+            setBaseUrl(existingConfig.base_url ?? "");
             setCollectionId(existingConfig.collection_id);
             setAccessKey("");
             setSecretKey("");
@@ -69,6 +71,7 @@ export function S3ConfigDialog({
         setAccessKey("");
         setSecretKey("");
         setIsPublic(false);
+        setBaseUrl("");
         setCollectionId("");
         setTestResult(null);
     }
@@ -120,6 +123,7 @@ export function S3ConfigDialog({
                 bucket: bucket.trim(),
                 prefix: prefix.trim() || undefined,
                 is_public: isPublic,
+                base_url: isPublic ? (baseUrl.trim() || undefined) : undefined,
                 collection_id: collectionId,
             };
 
@@ -156,6 +160,7 @@ export function S3ConfigDialog({
                 bucket: bucket.trim(),
                 prefix: prefix.trim() || undefined,
                 is_public: isPublic,
+                base_url: isPublic ? (baseUrl.trim() || undefined) : undefined,
                 collection_id: collectionId,
             };
 
@@ -341,25 +346,47 @@ export function S3ConfigDialog({
                         </select>
                     </div>
 
-                    {/* Public toggle */}
-                    <label
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "var(--space-2)",
-                            cursor: "pointer",
-                            fontSize: "var(--text-sm)",
-                            color: "var(--color-text-secondary)",
-                        }}
-                    >
-                        <input
-                            type="checkbox"
-                            checked={isPublic}
-                            onChange={(e) => setIsPublic(e.target.checked)}
-                            style={{ accentColor: "var(--color-primary-500)" }}
-                        />
-                        Bucket is publicly readable
-                    </label>
+                    {/* Public toggle and Base URL */}
+                    <div className="form-group" style={{ gap: "var(--space-2)" }}>
+                        <label
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "var(--space-2)",
+                                cursor: "pointer",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--color-text-secondary)",
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={isPublic}
+                                onChange={(e) => setIsPublic(e.target.checked)}
+                                style={{ accentColor: "var(--color-primary-500)" }}
+                            />
+                            Bucket is publicly readable
+                        </label>
+
+                        {isPublic && (
+                            <div style={{ marginTop: "var(--space-2)", paddingLeft: "var(--space-6)" }}>
+                                <label className="form-label">
+                                    Public Base URL{" "}
+                                    <span style={{ color: "var(--color-text-tertiary)", fontWeight: "normal", textTransform: "none", letterSpacing: "0" }}>
+                                        (optional, e.g. CDN or custom domain)
+                                    </span>
+                                </label>
+                                <input
+                                    className="dialog-input"
+                                    placeholder="https://cdn.example.com"
+                                    value={baseUrl}
+                                    onChange={(e) => setBaseUrl(e.target.value)}
+                                />
+                                <p style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginTop: "4px" }}>
+                                    If provided, this will be used as the root for all asset links in index.json.
+                                </p>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Test result banner */}
                     {testResult && (

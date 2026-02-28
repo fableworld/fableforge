@@ -9,6 +9,8 @@ export interface S3Config {
     bucket: string;
     prefix?: string;
     is_public: boolean;
+    base_url?: string;
+    public_url?: string;
     collection_id: string;
 }
 
