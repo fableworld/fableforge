@@ -397,15 +397,40 @@ async fn complete_pending_delete(
     recovery::complete_delete(conn, &mountpoint, op_id, slot_index)
 }
 
-// --- Helpers ---
+// --- HTTP Helpers ---
+
+#[tauri::command]
+async fn fetch_registry_json(url: String) -> Result<serde_json::Value, FabaError> {
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| FabaError::Custom(format!("Failed to fetch registry: {}", e)))?;
+    
+    if !response.status().is_success() {
+        return Err(FabaError::Custom(format!("Registry fetch failed with status: {}", response.status())));
+    }
+
+    let json = response.json::<serde_json::Value>()
+        .await
+        .map_err(|e| FabaError::Custom(format!("Failed to parse registry JSON: {}", e)))?;
+
+    Ok(json)
+}
 
 async fn download_image(url: &str) -> Result<Vec<u8>, FabaError> {
-    // Simple HTTP GET for preview image
-    // In a full implementation this would use reqwest or similar
-    // For now, we just try to read it as a local file path
     if url.starts_with("http://") || url.starts_with("https://") {
-        // TODO: implement HTTP download when reqwest is added
-        Err(FabaError::Custom("HTTP download not yet implemented".into()))
+        let response = reqwest::get(url)
+            .await
+            .map_err(|e| FabaError::Custom(format!("Failed to download image: {}", e)))?;
+        
+        if !response.status().is_success() {
+            return Err(FabaError::Custom(format!("Image download failed with status: {}", response.status())));
+        }
+
+        let bytes = response.bytes()
+            .await
+            .map_err(|e| FabaError::Custom(format!("Failed to read image bytes: {}", e)))?;
+        
+        Ok(bytes.to_vec())
     } else {
         // Treat as local file path
         std::fs::read(url).map_err(|e| FabaError::Custom(format!("Failed to read image: {}", e)))
@@ -929,6 +954,7 @@ pub fn run() {
             s3_get_sync_status,
             s3_resolve_conflict,
             s3_sync_all,
+            fetch_registry_json,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -13,6 +13,7 @@ import {
   getStoredCharacters,
   getCollections,
 } from "@/lib/store";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface FetchRegistryResult {
   registry: Registry;
@@ -26,12 +27,7 @@ export const registryService = {
    * and persist to local store.
    */
   async fetchRegistry(url: string): Promise<FetchRegistryResult> {
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch registry: ${res.status} ${res.statusText}`);
-    }
-
-    const json = await res.json();
+    const json = await invoke<any>("fetch_registry_json", { url });
 
     // Validate top-level metadata
     const metaResult = RegistrySchema.pick({ meta: true }).safeParse(json);
