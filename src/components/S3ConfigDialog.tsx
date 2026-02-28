@@ -125,8 +125,8 @@ export function S3ConfigDialog({
 
             await s3Service.saveConfig(
                 config,
-                accessKey.trim() || "unchanged",
-                secretKey.trim() || "unchanged"
+                accessKey.trim() || (isEditing ? "unchanged" : ""),
+                secretKey.trim() || (isEditing ? "unchanged" : "")
             );
 
             toast(

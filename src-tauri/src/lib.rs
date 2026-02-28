@@ -523,11 +523,15 @@ async fn s3_store_credentials(
     access_key: String,
     secret_key: String,
 ) -> Result<(), FabaError> {
-    if access_key == "unchanged" || secret_key == "unchanged" {
-        tracing::info!("Credential storage skipped for config {}: keys are 'unchanged'", config_id);
-        return Ok(());
+    if access_key != "unchanged" {
+        s3::credentials::set_access_key(&config_id, &access_key)?;
     }
-    s3::credentials::store_credentials(&config_id, &access_key, &secret_key)
+    
+    if secret_key != "unchanged" {
+        s3::credentials::set_secret_key(&config_id, &secret_key)?;
+    }
+    
+    Ok(())
 }
 
 #[tauri::command]
