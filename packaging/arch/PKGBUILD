@@ -1,0 +1,41 @@
+# Maintainer: d71 <steady.penguin@gmail.com>
+pkgname=fableforge
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="OpenFable Character Manager"
+arch=('x86_64')
+url="https://github.com/dghilardi/freefaba"
+license=('GPL-3.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'libnm' 'openssl')
+makedepends=('nodejs>=18' 'pnpm' 'rust' 'cargo' 'clang')
+source=("fableforge.desktop")
+md5sums=('SKIP')
+options=(!lto)
+
+# We assume this PKGBUILD is run from its own directory (packaging/arch/)
+# within the project repository.
+_repo_root="$startdir/../.."
+
+build() {
+  cd "$_repo_root"
+  
+  # Arch Linux default LDFLAGS (like --as-needed) can interfere with 
+  # Rust's internal linking of bundled C libraries (sqlite, ring, etc.)
+  export LDFLAGS=""
+  
+  pnpm install
+  pnpm tauri build --no-bundle
+}
+
+package() {
+  cd "$_repo_root"
+  
+  # Install the main binary
+  install -Dm755 "src-tauri/target/release/FableForge" "$pkgdir/usr/bin/fableforge"
+  
+  # Install the desktop entry (enables deep link registration)
+  install -Dm644 "packaging/arch/fableforge.desktop" "$pkgdir/usr/share/applications/fableforge.desktop"
+  
+  # Install the application icon
+  install -Dm644 "src-tauri/icons/128x128.png" "$pkgdir/usr/share/icons/hicolor/128x128/apps/fableforge.png"
+}
