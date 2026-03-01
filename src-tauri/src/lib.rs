@@ -21,6 +21,7 @@ mod dto;
 mod db;
 mod device;
 mod s3;
+mod audio_engine;
 
 type FabaState = Arc<Mutex<Option<FabaBox>>>;
 type DeviceDbState = Arc<Mutex<Option<rusqlite::Connection>>>;
@@ -101,15 +102,6 @@ async fn copy_audio_file(
     std::fs::copy(&src, &dest).map_err(|_| FabaError::Communication)?;
 
     Ok(dest.to_string_lossy().to_string())
-}
-
-/// Read a local audio file as raw bytes so the frontend can create a Blob URL.
-/// This is needed on Linux (WebKitGTK) where asset:// protocol doesn't play well
-/// with HTMLAudioElement.
-#[tauri::command]
-async fn read_audio_file(path: String) -> Result<Vec<u8>, FabaError> {
-    std::fs::read(&path)
-        .map_err(|e| FabaError::Custom(format!("Failed to read audio file: {}", e)))
 }
 
 #[tauri::command]
@@ -929,6 +921,11 @@ pub fn run() {
             // Generate a unique instance ID for this app session (used for S3 lockfiles)
             let instance_id: InstanceId = Arc::new(uuid::Uuid::new_v4().to_string());
             app.manage(instance_id);
+
+            // Native audio engine
+            let audio_engine = audio_engine::AudioEngine::new(app.handle().clone());
+            app.manage(audio_engine);
+
             start_device_polling(app.handle().clone(), faba_state, db_state);
 
             Ok(())
@@ -938,7 +935,6 @@ pub fn run() {
             load_tracks,
             write_tracks,
             copy_audio_file,
-            read_audio_file,
             check_device,
             get_device_slots,
             write_character_to_slot,
@@ -965,6 +961,8 @@ pub fn run() {
             s3_resolve_conflict,
             s3_sync_all,
             fetch_registry_json,
+            audio_engine::play_audio_native,
+            audio_engine::stop_audio_native,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

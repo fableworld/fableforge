@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Pencil, Trash2, Users } from "lucide-react";
 import type { Collection } from "@/lib/schemas";
 
@@ -9,6 +10,14 @@ interface CollectionCardProps {
 
 export function CollectionCard({ collection, onDelete }: CollectionCardProps) {
   const navigate = useNavigate();
+
+  const getCoverImage = () => {
+    if (!collection.cover_image) return null;
+    if (collection.cover_image.startsWith("/") || collection.cover_image.includes("\\")) {
+      return convertFileSrc(collection.cover_image);
+    }
+    return collection.cover_image;
+  };
 
   return (
     <div className="collection-card">
@@ -27,7 +36,7 @@ export function CollectionCard({ collection, onDelete }: CollectionCardProps) {
         {collection.cover_image ? (
           <img
             className="collection-card__cover"
-            src={collection.cover_image}
+            src={getCoverImage() ?? ""}
             alt={collection.name}
           />
         ) : (

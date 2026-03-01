@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface AudioPlayerState {
     /** ID of the track currently playing */
@@ -25,43 +26,10 @@ interface AudioPlayerActions {
 }
 
 /**
- * Determine the MIME type from a file extension.
- */
-function getMimeType(path: string): string {
-    const ext = path.split(".").pop()?.toLowerCase() ?? "";
-    switch (ext) {
-        case "mp3": return "audio/mpeg";
-        case "wav": return "audio/wav";
-        case "ogg": return "audio/ogg";
-        case "m4a": return "audio/mp4";
-        case "flac": return "audio/flac";
-        case "aac": return "audio/aac";
-        default: return "audio/mpeg";
-    }
-}
-
-/**
  * Determine if a source is a local file path (not http/https).
  */
 function isLocalPath(source: string): boolean {
-    return !source.startsWith("http://") && !source.startsWith("https://");
-}
-
-/**
- * For local files: read via Tauri invoke and create a Blob URL.
- * This is needed on Linux (WebKitGTK) where asset:// doesn't work
- * with HTMLAudioElement.
- * For remote URLs: use directly (streaming).
- */
-async function resolveAudioSrc(source: string): Promise<string> {
-    if (!isLocalPath(source)) {
-        return source;
-    }
-    const bytes = await invoke<number[]>("read_audio_file", { path: source });
-    const uint8 = new Uint8Array(bytes);
-    const mimeType = getMimeType(source);
-    const blob = new Blob([uint8], { type: mimeType });
-    return URL.createObjectURL(blob);
+    return !source.startsWith("http://") && !source.startsWith("https://") && !source.startsWith("blob:");
 }
 
 /**
@@ -70,8 +38,8 @@ async function resolveAudioSrc(source: string): Promise<string> {
  * - Manages a singleton HTMLAudioElement
  * - Only one track plays at a time
  * - Automatically stops on route change
- * - Local files: read via Tauri → Blob URL (WebKitGTK workaround)
- * - Remote URLs: direct streaming
+ * - Primary: Tauri asset protocol (streaming support)
+ * - Fallback: read via Tauri → Blob URL (for Linux compatibility)
  */
 export function useAudioPlayer(): AudioPlayerState & AudioPlayerActions {
     const [state, setState] = useState<AudioPlayerState>({
@@ -84,14 +52,19 @@ export function useAudioPlayer(): AudioPlayerState & AudioPlayerActions {
     const blobUrlRef = useRef<string | null>(null);
     const location = useLocation();
 
-    // Revoke current Blob URL and release audio resources
+    // Release audio resources
     const releaseAudio = useCallback(() => {
         const audio = audioRef.current;
         if (audio) {
             audio.pause();
             audio.currentTime = 0;
             audio.removeAttribute("src");
+            audio.load();
         }
+        
+        // Also stop native
+        invoke("stop_audio_native").catch((e) => console.error("Native stop error", e));
+
         if (blobUrlRef.current) {
             URL.revokeObjectURL(blobUrlRef.current);
             blobUrlRef.current = null;
@@ -110,6 +83,18 @@ export function useAudioPlayer(): AudioPlayerState & AudioPlayerActions {
         stopInternal();
     }, [location.pathname, stopInternal]);
 
+    // Listen for native audio ending
+    useEffect(() => {
+        const unlisten = listen("audio-ended", () => {
+            console.log("[AudioPlayer] Native audio ended");
+            trackIdRef.current = null;
+            setState({ playingTrackId: null, loadingTrackId: null });
+        });
+        return () => {
+            unlisten.then((f) => f());
+        };
+    }, []);
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -117,86 +102,121 @@ export function useAudioPlayer(): AudioPlayerState & AudioPlayerActions {
         };
     }, [releaseAudio]);
 
+    /**
+     * Internal play function that attempts to play a given SRC.
+     * Returns true if playback started successfully.
+     */
+    const attemptPlay = useCallback(async (trackId: string, src: string): Promise<boolean> => {
+        if (!audioRef.current) audioRef.current = new Audio();
+        const audio = audioRef.current;
+
+        // Prepare for new source
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        
+        audio.preload = "auto";
+        
+        // Remove previous listeners
+        audio.onended = null;
+        audio.onerror = null;
+
+        return new Promise((resolve, reject) => {
+            const onEnded = () => {
+                if (trackIdRef.current === trackId) {
+                    console.log("[AudioPlayer] Track ended:", trackId);
+                    trackIdRef.current = null;
+                    setState({ playingTrackId: null, loadingTrackId: null });
+                }
+            };
+
+            const onError = (e: any) => {
+                console.error("[AudioPlayer] Element error:", e);
+                reject(new Error("Audio element error"));
+            };
+
+            // Wait until the browser estimates it can play the whole thing
+            const onCanPlayThrough = () => {
+                console.log("[AudioPlayer] Ready to play through:", trackId);
+                audio.play()
+                    .then(() => {
+                        if (trackIdRef.current === trackId) {
+                            setState({ playingTrackId: trackId, loadingTrackId: null });
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    })
+                    .catch((err) => {
+                        if (err.name === "AbortError") {
+                            resolve(false);
+                        } else {
+                            reject(err);
+                        }
+                    });
+            };
+
+            // Attach listeners BEFORE setting src
+            audio.addEventListener("ended", onEnded, { once: true });
+            audio.addEventListener("error", onError, { once: true });
+            audio.addEventListener("canplaythrough", onCanPlayThrough, { once: true });
+            
+            audio.src = src;
+
+            // Timeout if it takes too long to load (15s)
+            setTimeout(() => {
+                audio.removeEventListener("canplaythrough", onCanPlayThrough);
+                audio.removeEventListener("error", onError);
+                if (trackIdRef.current === trackId && state.loadingTrackId === trackId) {
+                   reject(new Error("Loading timeout"));
+                }
+            }, 15000);
+        });
+    }, [state.loadingTrackId]);
+
     const play = useCallback(
-        (trackId: string, source: string) => {
-            // Toggle off if same track is playing/loading
+        async (trackId: string, source: string) => {
             if (trackIdRef.current === trackId) {
+                console.log("[AudioPlayer] Stopping track:", trackId);
                 stopInternal();
                 return;
             }
 
-            // Stop any current playback
             releaseAudio();
-
-            // Create audio element if needed
-            if (!audioRef.current) {
-                audioRef.current = new Audio();
-            }
-            const audio = audioRef.current;
-
-            // Mark as loading
             trackIdRef.current = trackId;
             setState({ playingTrackId: null, loadingTrackId: trackId });
 
-            resolveAudioSrc(source)
-                .then((src) => {
-                    // If another track was selected while we were loading, bail out
-                    if (trackIdRef.current !== trackId) {
-                        // Clean up blob URL we just created (if any)
-                        if (isLocalPath(source)) URL.revokeObjectURL(src);
-                        return;
-                    }
+            console.log("[AudioPlayer] Starting playback for:", trackId, "Source type:", isLocalPath(source) ? "local" : "remote");
 
-                    // Store blob URL for later cleanup
-                    if (isLocalPath(source)) {
-                        blobUrlRef.current = src;
-                    }
-
-                    audio.src = src;
-
-                    audio.onended = () => {
-                        trackIdRef.current = null;
-                        if (blobUrlRef.current) {
-                            URL.revokeObjectURL(blobUrlRef.current);
-                            blobUrlRef.current = null;
-                        }
-                        setState({ playingTrackId: null, loadingTrackId: null });
-                    };
-
-                    audio.onerror = (e) => {
-                        console.error("Audio error for track:", trackId, e);
-                        trackIdRef.current = null;
-                        if (blobUrlRef.current) {
-                            URL.revokeObjectURL(blobUrlRef.current);
-                            blobUrlRef.current = null;
-                        }
-                        setState({ playingTrackId: null, loadingTrackId: null });
-                    };
-
-                    audio
-                        .play()
-                        .then(() => {
-                            if (trackIdRef.current === trackId) {
-                                setState({ playingTrackId: trackId, loadingTrackId: null });
-                            }
-                        })
-                        .catch((err) => {
-                            console.error("Audio play() rejected:", err);
-                            if (trackIdRef.current === trackId) {
-                                releaseAudio();
-                                setState({ playingTrackId: null, loadingTrackId: null });
-                            }
-                        });
-                })
-                .catch((err) => {
-                    console.error("Failed to resolve audio source:", err);
+            try {
+                // Path A: Local Files -> Native Rust (Maximum stability on Linux)
+                if (isLocalPath(source)) {
+                    console.log("[AudioPlayer] Playing local file via Native Rust engine:", source);
+                    await invoke("play_audio_native", { path: source });
                     if (trackIdRef.current === trackId) {
-                        trackIdRef.current = null;
-                        setState({ playingTrackId: null, loadingTrackId: null });
+                        setState({ playingTrackId: trackId, loadingTrackId: null });
                     }
-                });
+                    return;
+                }
+
+                // Path B: Remote URLs -> Browser Audio
+                if (source.startsWith("http")) {
+                    console.log("[AudioPlayer] Playing remote URL via Browser engine:", source);
+                    await attemptPlay(trackId, source);
+                    return;
+                }
+
+                throw new Error("Unsupported audio source: " + source);
+
+            } catch (err) {
+                console.error("[AudioPlayer] Playback failed:", err);
+                if (trackIdRef.current === trackId) {
+                    releaseAudio();
+                    setState({ playingTrackId: null, loadingTrackId: null });
+                }
+            }
         },
-        [stopInternal, releaseAudio]
+        [stopInternal, releaseAudio, attemptPlay]
     );
 
     const isPlaying = useCallback(
