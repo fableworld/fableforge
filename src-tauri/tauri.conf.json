@@ -1,6 +1,6 @@
 {
   "productName": "FableForge",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "identifier": "dev.d71.fableforge",
   "mainBinaryName": "FableForge",
   "build": {
