@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Deep Linking Support**: Integrated `tauri-plugin-deep-link` to handle `freefaba://` protocol for character sharing and remote registry imports.
+- **Ephemeral Characters**: Added support for previewing and playing characters from external registries before importing them into the local collection.
+- **Native Audio Engine**: Implemented a dedicated Rust-based audio engine using `rodio` to provide stable, low-latency playback on Linux, bypassing Webview limitations.
+- **Arch Linux Packaging**: Added `PKGBUILD` and `.desktop` files for official Arch Linux support and AUR-ready packaging.
+- **Backend Networking**: Switched to `reqwest` for robust HTTP fetching of registries and assets directly from the Rust backend.
+- **Device Management**: Centralized logic for Faba hardware device slot management (loading and clearing) in the main application state.
+- **S3 Improvements**: Added support for optional public base URLs in S3 configurations and implemented partial credential updates.
+- **Security**: Enabled persistent storage and Rust-based crypto features for the OS keyring integration.
 
 ## [0.2.0] 2026-02-23
 ### Fixed
