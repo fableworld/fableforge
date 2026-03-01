@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0] 2026-03-01
 ### Added
 - **Deep Linking Support**: Integrated `tauri-plugin-deep-link` to handle `freefaba://` protocol for character sharing and remote registry imports.
 - **Ephemeral Characters**: Added support for previewing and playing characters from external registries before importing them into the local collection.
