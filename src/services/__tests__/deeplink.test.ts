@@ -124,7 +124,9 @@ describe('parseDeepLink', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe('MISSING_PARAM');
-      expect(result.error.param).toBe('id');
+      if (result.error.code === 'MISSING_PARAM') {
+        expect(result.error.param).toBe('id');
+      }
     }
   });
 
@@ -133,7 +135,9 @@ describe('parseDeepLink', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe('MISSING_PARAM');
-      expect(result.error.param).toBe('registry');
+      if (result.error.code === 'MISSING_PARAM') {
+        expect(result.error.param).toBe('registry');
+      }
     }
   });
 

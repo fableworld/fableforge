@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { useSetAtom, useAtomValue } from 'jotai';
-import { pendingDeepLinkAtom, deepLinkProcessingAtom } from '@/stores/deeplink';
+import { useSetAtom } from 'jotai';
+import { pendingDeepLinkAtom } from '@/stores/deeplink';
 import { parseDeepLink } from '@/services/deeplink';
-import type { DeepLinkRequest } from '@/services/deeplink';
 
 // Debounce window in milliseconds
 const DEBOUNCE_MS = 2000;
@@ -19,7 +18,6 @@ const DEBOUNCE_MS = 2000;
  */
 export function useDeepLinkListener() {
   const setPendingDeepLink = useSetAtom(pendingDeepLinkAtom);
-  const isProcessing = useAtomValue(deepLinkProcessingAtom);
   const lastLinkRef = useRef<string | null>(null);
   const lastLinkTimeRef = useRef<number>(0);
 
