@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=FableForge
+Comment=OpenFable Character Manager
+Exec=fableforge %u
+Icon=fableforge
+Terminal=false
+Categories=Utility;
+MimeType=x-scheme-handler/fableforge;
+Keywords=openfable;fableforge;character;

@@ -30,6 +30,13 @@
       "csp": "default-src 'self'; img-src 'self' asset: https: data: http://asset.localhost; media-src 'self' asset: http://asset.localhost blob:; connect-src 'self' asset: https:;"
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["fableforge"]
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "category": "Utility",
@@ -44,6 +51,9 @@
     "linux": {
       "deb": {
         "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
       }
     },
     "macOS": {

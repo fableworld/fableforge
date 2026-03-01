@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   ArrowLeft,
   Music,
@@ -15,8 +15,14 @@ import {
 import { charactersAtom } from "@/stores/registries";
 import { registryService } from "@/services/registry";
 import { deviceStatusAtom } from "@/stores/device";
+import {
+  ephemeralCharacterAtom,
+  ephemeralRegistryMetaAtom,
+  ephemeralRegistryUrlAtom,
+} from "@/stores/deeplink";
 import { WriteFlowOrchestrator } from "@/components/WriteFlowOrchestrator";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { EphemeralBanner } from "@/components/EphemeralBanner";
 import type { Character } from "@/lib/schemas";
 
 export function CharacterDetailPage() {
@@ -26,6 +32,15 @@ export function CharacterDetailPage() {
   const setCharacters = useSetAtom(charactersAtom);
   const [device] = useAtom(deviceStatusAtom);
   const [character, setCharacter] = useState<Character | undefined>();
+  const [isEphemeral, setIsEphemeral] = useState(false);
+
+  // Ephemeral state
+  const ephemeralCharacter = useAtomValue(ephemeralCharacterAtom);
+  const ephemeralMeta = useAtomValue(ephemeralRegistryMetaAtom);
+  const ephemeralRegistryUrl = useAtomValue(ephemeralRegistryUrlAtom);
+  const setEphemeralCharacter = useSetAtom(ephemeralCharacterAtom);
+  const setEphemeralMeta = useSetAtom(ephemeralRegistryMetaAtom);
+  const setEphemeralRegistryUrl = useSetAtom(ephemeralRegistryUrlAtom);
 
   // Write flow state
   const [writeFlowOpen, setWriteFlowOpen] = useState(false);
@@ -47,11 +62,36 @@ export function CharacterDetailPage() {
     loadIfNeeded();
   }, [loadIfNeeded]);
 
+  // Resolve character: check ephemeral first, then persisted
   useEffect(() => {
-    if (id && characters.length > 0) {
-      setCharacter(characters.find((c) => c.id === id));
+    if (!id) return;
+
+    // Check ephemeral character first
+    if (ephemeralCharacter && ephemeralCharacter.id === id) {
+      setCharacter(ephemeralCharacter);
+      setIsEphemeral(true);
+      return;
     }
-  }, [id, characters]);
+
+    // Then check persisted characters
+    if (characters.length > 0) {
+      const found = characters.find((c) => c.id === id);
+      setCharacter(found);
+      setIsEphemeral(false);
+    }
+  }, [id, characters, ephemeralCharacter]);
+
+  // Clear ephemeral state on unmount
+  useEffect(() => {
+    return () => {
+      if (isEphemeral) {
+        setEphemeralCharacter(null);
+        setEphemeralMeta(null);
+        setEphemeralRegistryUrl(null);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEphemeral]);
 
 
 
@@ -111,6 +151,23 @@ export function CharacterDetailPage() {
       </header>
 
       <div className="main-content__body">
+        {/* Ephemeral Banner */}
+        {isEphemeral && ephemeralMeta && (
+          <EphemeralBanner
+            registryName={ephemeralMeta.name}
+            onImportRegistry={() => {
+              // Will be connected in Task 6 (DeepLinkResolver)
+              console.log('[ephemeral] Import registry:', ephemeralRegistryUrl);
+            }}
+            onSaveToCollection={() => {
+              // Will be connected in Task 6
+              console.log('[ephemeral] Save to collection');
+            }}
+            onClose={() => {
+              // Banner dismissed, character stays ephemeral
+            }}
+          />
+        )}
         <div className="character-detail">
           {/* Hero Image */}
           <div className="character-detail__hero">

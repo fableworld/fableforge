@@ -104,6 +104,70 @@ export const registryService = {
   },
 
   /**
+   * Fetch and validate a registry WITHOUT persisting to local store.
+   * Used for ephemeral deep link viewing.
+   */
+  async fetchRegistryWithoutPersist(url: string): Promise<FetchRegistryResult> {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch registry: ${res.status} ${res.statusText}`);
+    }
+
+    const json = await res.json();
+
+    const metaResult = RegistrySchema.pick({ meta: true }).safeParse(json);
+    if (!metaResult.success) {
+      throw new Error(
+        `Invalid registry metadata: ${metaResult.error.issues[0]?.message}`
+      );
+    }
+
+    const rawCharacters = json.characters;
+    if (!Array.isArray(rawCharacters)) {
+      throw new Error('Invalid registry format: "characters" must be an array');
+    }
+
+    const validCharacters: Character[] = [];
+    const errors: string[] = [];
+
+    for (const char of rawCharacters) {
+      const charResult = CharacterSchema.safeParse(char);
+      if (charResult.success) {
+        validCharacters.push(charResult.data);
+      } else {
+        const name = (char as Record<string, unknown>).name ?? "unknown";
+        errors.push(
+          `Character "${name}" skipped: ${charResult.error.issues[0]?.message}`
+        );
+      }
+    }
+
+    if (validCharacters.length === 0 && rawCharacters.length > 0) {
+      throw new Error("Registry contains no valid characters.");
+    }
+
+    if (errors.length > 0) {
+      console.warn("Some characters were skipped:", errors);
+    }
+
+    return {
+      registry: {
+        meta: metaResult.data.meta,
+        characters: validCharacters,
+      },
+      skippedCount: errors.length,
+      errors,
+    };
+  },
+
+  /**
+   * Find a character by ID within a list of characters.
+   */
+  findCharacterById(characters: Character[], id: string): Character | undefined {
+    return characters.find((c) => c.id === id);
+  },
+
+  /**
    * Load all stored data (for initial app boot).
    */
   async loadAll() {

@@ -12,6 +12,8 @@ import { DeviceInventoryPage } from "@/pages/DeviceInventoryPage";
 
 import { ToastProvider } from "@/components/ToastProvider";
 import { RecoveryDialog } from "@/components/RecoveryDialog";
+import { DeepLinkResolver } from "@/components/DeepLinkResolver";
+import { useDeepLinkListener } from "@/hooks/useDeepLinkListener";
 import { deviceService, type PendingOperation } from "@/services/device";
 import { useState } from "react";
 import { useSetAtom } from "jotai";
@@ -25,6 +27,9 @@ export function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // Deep link listener (cold start + warm start)
+  useDeepLinkListener();
 
   // Recovery & Device detection
   useEffect(() => {
@@ -88,6 +93,7 @@ export function App() {
           operations={pendingOps} 
           onResolved={handleRecoveryResolved} 
         />
+        <DeepLinkResolver />
       </div>
     </ToastProvider>
   );
