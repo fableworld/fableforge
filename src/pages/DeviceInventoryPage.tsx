@@ -26,12 +26,10 @@ export function DeviceInventoryPage() {
   };
 
   useEffect(() => {
-    if (device.connected) {
+    if (device.connected && slots.length === 0) {
       loadSlots();
-    } else {
-      setSlots([]);
     }
-  }, [device.connected]);
+  }, [device.connected, slots.length]);
 
   const handleDelete = async (slotIndex: number, characterName: string) => {
     if (!confirm(`Are you sure you want to remove "${characterName}" from slot ${slotIndex + 1}?`)) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { deviceService, SlotCheckResult } from "@/services/device";
 import { deviceSlotsAtom, writeProgressAtom } from "@/stores/device";
 import { SlotSelectionDialog } from "./SlotSelectionDialog";
@@ -39,6 +39,7 @@ export function WriteFlowOrchestrator({
   const [step, setStep] = useState<FlowStep>("idle");
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [slots] = useAtom(deviceSlotsAtom);
+  const setSlots = useSetAtom(deviceSlotsAtom);
   const [progress, setProgress] = useAtom(writeProgressAtom);
   const [suggestedSlot, setSuggestedSlot] = useState<number | null>(null);
   const [slotCheck, setSlotCheck] = useState<SlotCheckResult | null>(null);
@@ -53,6 +54,15 @@ export function WriteFlowOrchestrator({
       unlisten.then((fn) => fn());
     };
   }, [setProgress]);
+
+  // Step 0.5: Ensure slots are loaded
+  useEffect(() => {
+    if (open && slots.length === 0) {
+      deviceService.getSlots()
+        .then(setSlots)
+        .catch(console.error);
+    }
+  }, [open, slots.length, setSlots]);
 
   // Step 1: Initializing - find character if already on device
   useEffect(() => {

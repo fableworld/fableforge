@@ -17,12 +17,13 @@ import { useDeepLinkListener } from "@/hooks/useDeepLinkListener";
 import { deviceService, type PendingOperation } from "@/services/device";
 import { useState } from "react";
 import { useSetAtom } from "jotai";
-import { deviceStatusAtom } from "@/stores/device";
+import { deviceStatusAtom, deviceSlotsAtom } from "@/stores/device";
 
 export function App() {
   const [theme] = useAtom(themeAtom);
   const [pendingOps, setPendingOps] = useState<PendingOperation[]>([]);
   const setDevice = useSetAtom(deviceStatusAtom);
+  const setSlots = useSetAtom(deviceSlotsAtom);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -42,10 +43,22 @@ export function App() {
       }
     };
 
+    const loadSlots = async () => {
+      try {
+        const slots = await deviceService.getSlots();
+        setSlots(slots);
+      } catch (e) {
+        console.error("Failed to load slots:", e);
+      }
+    };
+
     // Initial check
     deviceService.checkDevice().then((status) => {
       setDevice(status);
-      if (status.connected) checkRecovery();
+      if (status.connected) {
+        checkRecovery();
+        loadSlots();
+      }
     }).catch(() => {});
 
     // Listen for changes
@@ -53,15 +66,17 @@ export function App() {
       setDevice(status);
       if (status.connected) {
         checkRecovery();
+        loadSlots();
       } else {
         setPendingOps([]);
+        setSlots([]);
       }
     });
 
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [setDevice]);
+  }, [setDevice, setSlots]);
 
   const handleRecoveryResolved = async () => {
     // Refresh the list
