@@ -178,7 +178,7 @@ async fn write_character_to_slot(
 
     // Download preview image before touching DB (this is async)
     let preview_blob = if let Some(ref url) = preview_image_url {
-        download_image(url).await.ok()
+        crate::core::network::download_image(url).await.ok()
     } else {
         None
     };
@@ -408,26 +408,6 @@ async fn fetch_registry_json(url: String) -> Result<serde_json::Value, FabaError
     Ok(json)
 }
 
-async fn download_image(url: &str) -> Result<Vec<u8>, FabaError> {
-    if url.starts_with("http://") || url.starts_with("https://") {
-        let response = reqwest::get(url)
-            .await
-            .map_err(|e| FabaError::Custom(format!("Failed to download image: {}", e)))?;
-        
-        if !response.status().is_success() {
-            return Err(FabaError::Custom(format!("Image download failed with status: {}", response.status())));
-        }
-
-        let bytes = response.bytes()
-            .await
-            .map_err(|e| FabaError::Custom(format!("Failed to read image bytes: {}", e)))?;
-        
-        Ok(bytes.to_vec())
-    } else {
-        // Treat as local file path
-        std::fs::read(url).map_err(|e| FabaError::Custom(format!("Failed to read image: {}", e)))
-    }
-}
 
 #[tauri::command]
 async fn get_system_info(app: AppHandle) -> Result<SystemInfoDto, FabaError> {

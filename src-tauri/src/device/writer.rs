@@ -136,10 +136,42 @@ pub async fn write_character(
             },
         );
 
-        // Encode to .partial file (async — no DB lock held)
-        let encode_result =
-            mki::encode_using_tempfile(track_path, &partial_path, 5000 + slot, track_num).await;
+        // --- Download and Encode ---
+        // Check if track_path is a remote URL or local file
+        let track_str = track_path.to_string_lossy();
+        let is_remote = track_str.starts_with("http://") || track_str.starts_with("https://");
 
+        let effective_src_path = if is_remote {
+            let _ = app.emit(
+                "write-progress",
+                WriteProgressDto {
+                    current: i,
+                    total: total_tracks,
+                    track_name: track_display_name.clone(),
+                    status: "downloading".into(),
+                },
+            );
+            crate::core::network::download_to_temp_file(&track_str).await.map_err(|e| {
+                eprintln!("Download error for track {track_num}: {e}");
+                e
+            })?
+        } else {
+            track_path.clone()
+        };
+
+        // Encode to .partial file (async — no DB lock held)
+        let encode_result = mki::encode_using_tempfile(
+            &effective_src_path,
+            &partial_path,
+            5000 + slot,
+            track_num,
+        )
+        .await;
+
+        // Cleanup temporary download if needed
+        if is_remote {
+            let _ = fs::remove_file(&effective_src_path);
+        }
 
         if let Err(err) = encode_result {
             eprintln!("Write error for track {track_num}: {err}");
