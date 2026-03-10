@@ -10,6 +10,7 @@ pub struct SlotDto {
     pub character_name: Option<String>,
     pub track_count: usize,
     pub exists: bool,
+    pub nfc_payload: Option<String>,
 }
 
 
@@ -21,6 +22,7 @@ impl From<FabaSlot> for SlotDto {
             character_name: value.name,
             track_count: value.track_count,
             exists: value.exists,
+            nfc_payload: None,
         }
     }
 }

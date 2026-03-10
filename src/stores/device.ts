@@ -11,6 +11,7 @@ export interface SlotInfo {
   characterName?: string;
   trackCount: number;
   exists: boolean;
+  nfcPayload?: string;
 }
 
 export interface WriteProgress {

@@ -125,12 +125,12 @@ fn get_device_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaEr
         return Err(FabaError::NotDetected)
     };
     
-    // We also need to cross-ref with the DB to get names
-    let mut characters: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
+    // We also need to cross-ref with the DB to get names and nfc payloads
+    let mut characters: std::collections::HashMap<usize, (String, Option<String>)> = std::collections::HashMap::new();
     if let Ok(conn) = crate::db::device_db::open_device_db(&faba.mountpoint_path()) {
         if let Ok(all_chars) = crate::db::device_db::get_all_characters(&conn) {
             for c in all_chars {
-                characters.insert(c.slot_index, c.character_name);
+                characters.insert(c.slot_index, (c.character_name, c.nfc_payload));
             }
         }
     }
@@ -139,10 +139,14 @@ fn get_device_slots(maybe_faba: State<FabaState>) -> Result<Vec<SlotDto>, FabaEr
         .list_all_slots()
         .into_iter()
         .map(|mut s| {
-            if let Some(name) = characters.get(&s.index) {
+            let mut nfc = None;
+            if let Some((name, payload)) = characters.get(&s.index) {
                 s.name = Some(name.clone());
+                nfc = payload.clone();
             }
-            SlotDto::from(s)
+            let mut dto = SlotDto::from(s);
+            dto.nfc_payload = nfc;
+            dto
         })
         .collect();
     println!("get_device_slots: Found {} slots", res.len());

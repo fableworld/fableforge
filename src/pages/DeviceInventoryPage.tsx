@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
-import { Smartphone, Trash2, HardDrive, RefreshCw } from "lucide-react";
+import { Smartphone, Trash2, HardDrive, RefreshCw, QrCode } from "lucide-react";
 import { deviceStatusAtom, deviceSlotsAtom } from "@/stores/device";
 import { deviceService } from "@/services/device";
 import { useToast } from "@/components/ToastProvider";
+import { NfcQrDialog } from "@/components/NfcQrDialog";
 
 export function DeviceInventoryPage() {
   const [device] = useAtom(deviceStatusAtom);
   const [slots, setSlots] = useAtom(deviceSlotsAtom);
   const [loading, setLoading] = useState(false);
+  const [selectedNfcPayload, setSelectedNfcPayload] = useState<string | null>(null);
   const { show: toast } = useToast();
 
   const loadSlots = async () => {
@@ -107,6 +109,15 @@ export function DeviceInventoryPage() {
                   </div>
                 </div>
                 <div className="inventory-item__actions">
+                  {slot.nfcPayload && (
+                    <button
+                      className="btn btn--ghost btn--icon btn--sm"
+                      onClick={() => setSelectedNfcPayload(slot.nfcPayload!)}
+                      title="Show NFC QR Code"
+                    >
+                      <QrCode size={16} />
+                    </button>
+                  )}
                   <button
                     className="btn btn--ghost btn--icon btn--sm btn--danger-hover"
                     onClick={() => handleDelete(slot.index, slot.characterName || "Unknown")}
@@ -120,6 +131,14 @@ export function DeviceInventoryPage() {
           </div>
         )}
       </div>
+
+      {selectedNfcPayload && (
+        <NfcQrDialog
+          open={!!selectedNfcPayload}
+          onOpenChange={(open) => !open && setSelectedNfcPayload(null)}
+          nfcPayload={selectedNfcPayload}
+        />
+      )}
     </>
   );
 }
