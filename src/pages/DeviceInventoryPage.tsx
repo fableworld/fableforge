@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
 import { Smartphone, Trash2, HardDrive, RefreshCw, QrCode } from "lucide-react";
 import { deviceStatusAtom, deviceSlotsAtom } from "@/stores/device";
@@ -12,6 +13,7 @@ export function DeviceInventoryPage() {
   const [loading, setLoading] = useState(false);
   const [selectedNfcPayload, setSelectedNfcPayload] = useState<string | null>(null);
   const { show: toast } = useToast();
+  const navigate = useNavigate();
 
   const loadSlots = async () => {
     if (!device.connected) return;
@@ -97,7 +99,11 @@ export function DeviceInventoryPage() {
           <div className="inventory-grid">
             {occupiedSlots.map((slot) => (
               <div key={slot.index} className="card inventory-item">
-                <div className="inventory-item__info">
+                <div 
+                  className="inventory-item__info" 
+                  onClick={() => navigate(`/device/${slot.index}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   <div className="inventory-item__slot-badge">
                     Slot {slot.index}
                   </div>

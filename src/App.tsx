@@ -9,6 +9,8 @@ import { EditorPage } from "@/pages/EditorPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { CharacterDetailPage } from "@/pages/CharacterDetailPage";
 import { DeviceInventoryPage } from "@/pages/DeviceInventoryPage";
+import { DeviceCharacterDetailPage } from "@/pages/DeviceCharacterDetailPage";
+
 
 import { ToastProvider } from "@/components/ToastProvider";
 import { RecoveryDialog } from "@/components/RecoveryDialog";
@@ -105,6 +107,7 @@ export function App() {
             <Route path="/editor/:collectionId/:characterId" element={<EditorPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/device" element={<DeviceInventoryPage />} />
+            <Route path="/device/:slotIndex" element={<DeviceCharacterDetailPage />} />
             <Route path="/character/:id" element={<CharacterDetailPage />} />
           </Routes>
         </main>

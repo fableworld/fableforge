@@ -73,7 +73,7 @@ fn scramble<'x, In>(instream: In) -> impl Iterator<Item=u8> + 'x
         .map(|(idx, byte)| RAINBOW_TABLE[idx % 4][*byte.borrow() as usize])
 }
 
-fn unscramble<'x, In>(instream: In) -> impl Iterator<Item=u8> + 'x
+pub fn unscramble<'x, In>(instream: In) -> impl Iterator<Item=u8> + 'x
     where In: IntoIterator,
           In::IntoIter: 'x,
           In::Item: Borrow<u8>,

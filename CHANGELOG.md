@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Device Character Details Page**: Users can now click on a character card in the Device Inventory to view its details, including the track list and NFC QR code.
+- **On-the-fly MKI Unscrambling**: The native Rust audio engine now seamlessly extracts and streams actual MP3 data from Faba `.MKI` encrypted files directly from the device's memory for playback, without needing to copy them locally.
+
 ### Fixed
 - Device slots now correctly refresh and update their state immediately after a character is successfully written or when an interrupted operation is resolved.
 

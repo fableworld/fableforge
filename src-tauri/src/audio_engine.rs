@@ -47,7 +47,10 @@ impl AudioEngine {
 
                         // Read entire file into RAM to eliminate disk latency during playback
                         match fs::read(&path) {
-                            Ok(bytes) => {
+                            Ok(mut bytes) => {
+                                if path.to_uppercase().ends_with(".MKI") {
+                                    bytes = crate::mki::unscramble(&bytes).collect();
+                                }
                                 let cursor = Cursor::new(bytes);
                                 match Decoder::new(cursor) {
                                     Ok(source) => {
