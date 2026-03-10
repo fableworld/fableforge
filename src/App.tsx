@@ -83,6 +83,10 @@ export function App() {
     try {
       const ops = await deviceService.getPendingOperations();
       setPendingOps(ops);
+      
+      // Refresh slots since a recovery operation alters device content
+      const slots = await deviceService.getSlots();
+      setSlots(slots);
     } catch (e) {
       setPendingOps([]);
     }

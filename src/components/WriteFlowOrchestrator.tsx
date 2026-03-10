@@ -55,14 +55,14 @@ export function WriteFlowOrchestrator({
     };
   }, [setProgress]);
 
-  // Step 0.5: Ensure slots are loaded
+  // Step 0.5: Ensure slots are loaded and fresh
   useEffect(() => {
-    if (open && slots.length === 0) {
+    if (open) {
       deviceService.getSlots()
         .then(setSlots)
         .catch(console.error);
     }
-  }, [open, slots.length, setSlots]);
+  }, [open, setSlots]);
 
   // Step 1: Initializing - find character if already on device
   useEffect(() => {
@@ -132,6 +132,10 @@ export function WriteFlowOrchestrator({
         contentHash: character.contentHash,
       });
       setLastNfcPayload(nfcPayload);
+      
+      // Refresh slots state so global UI reflects the newly written slot
+      deviceService.getSlots().then(setSlots).catch(console.error);
+      
       // Success is handled via onWriteProgress listener usually, 
       // but writeCharacterToSlot returns when done.
     } catch (error) {
